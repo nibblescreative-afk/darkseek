@@ -45,6 +45,9 @@ Six rooms run at once, three casual and three pro, on an authoritative server
 at 60 ticks a second. Each browser receives only what its player could see, so
 a modified client has nothing hidden to reveal.
 
+Controls, roles, payouts and a FAQ for players are in the
+[wiki](https://github.com/nibblescreative-afk/darkseek/wiki).
+
 ## The money, onchain
 
 | Stake per seat | Casual | Pro |
@@ -174,6 +177,21 @@ scripts/build-idl.sh            # programs/darkseek-vault/idl/darkseek_vault.jso
 The validator tests start their own `solana-test-validator` on ports 28899 and
 up, deploy the program as upgradeable and run every scenario, checking after
 each step that custody equals what the program owes, to the base unit.
+
+## Roadmap
+
+| Phase | Status |
+|---|---|
+| **Playable cave**: the cave, lighting, 14 characters, practice rounds | done |
+| **Online rooms**: six rooms on an authoritative 60 Hz server, people only staked rounds (play money) | done |
+| **Open onchain part**: this repository, with verifiable releases | done |
+| **Devnet**: the program deployed from a tagged release, test money only | next |
+| **Mainnet and $DS**: external audit, multisig upgrade authority, $DS launched on pump.fun | planned |
+| **Seasons**: tournaments, replays, signed round results | planned |
+
+Follow it on the [project board](https://github.com/users/nibblescreative-afk/projects/1), in the
+[milestones](https://github.com/nibblescreative-afk/darkseek/milestones) and in the pinned
+[Roadmap issue](https://github.com/nibblescreative-afk/darkseek/issues/12).
 
 ## Status
 

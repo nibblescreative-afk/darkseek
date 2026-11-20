@@ -10,6 +10,12 @@
   workflow), a dependency review check on every pull request, and grouped
   Dependabot updates. Major versions of @solana/web3.js, @noble/hashes and
   @types/node are planned by hand.
+- Dependencies: `jayson` 5 under `@solana/web3.js` (an npm override). It no
+  longer pulls in `uuid` 8 and `stream-json` 1, which closes four moderate
+  advisories; the SDK, indexer and validator tests pass unchanged.
+- The README has the roadmap, with links to the project board, the
+  milestones and the pinned Roadmap issue. The issue chooser no longer lists
+  the vulnerability report twice (GitHub adds its own private report link).
 
 ## 0.2.1
 
