@@ -28,12 +28,15 @@ impact is.
 In scope: everything in this repository, above all `programs/darkseek-vault`,
 and any deployment listed in [docs/deployments.md](docs/deployments.md).
 
-Out of scope here: the game client, the game server and the website (report
-issues with them through the same channel; they are private, so we will handle
-them directly), third party programs (SPL Token, Token 2022, Squads), and
-findings that need a compromised admin or upgrade key. What those keys can do
-is documented in [docs/security-model.md](docs/security-model.md); a way for
-them to do more than that document says is in scope.
+Also in scope, through the same channel: the game client, the game server and
+the website at [thedarkseek.xyz](https://thedarkseek.xyz/security). Their code
+is not in this repository, so we handle those reports directly.
+
+Out of scope: third party programs (SPL Token, Token 2022, Squads), floods and
+other denial of service tests, and findings that need a compromised admin or
+upgrade key. What those keys can do is documented in
+[docs/security-model.md](docs/security-model.md); a way for them to do more
+than that document says is in scope.
 
 ## Rewards
 
