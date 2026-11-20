@@ -1,0 +1,77 @@
+# A tag vX.Y.Z builds the program reproducibly, checks the IDL, packs the SDK,
+# writes SHA256SUMS, attests build provenance for every asset and drafts the
+# GitHub release. See docs/releasing.md.
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+  id-token: write
+  attestations: write
+
+env:
+  VERIFY_IMAGE: solanafoundation/solana-verifiable-build:4.3.0@sha256:12fd4c0a0790f0fc41ef74b0cdb6bccc167ba6137eb1adb749bac649481c86bd
+  SOLANA_VERIFY_VERSION: 0.5.2
+
+jobs:
+  release:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 22
+          cache: npm
+      - name: The tag matches the versions in the source
+        run: |
+          v="${GITHUB_REF_NAME#v}"
+          grep -q "^version = \"$v\"$" programs/darkseek-vault/Cargo.toml
+          test "$(node -p "require('./packages/sdk/package.json').version")" = "$v"
+      - name: Rust 1.100.0
+        run: |
+          rustup toolchain install 1.100.0 --profile minimal
+          rustup default 1.100.0
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.cargo/bin/solana-verify
+          key: solana-verify-${{ env.SOLANA_VERIFY_VERSION }}-${{ runner.os }}
+      - name: solana-verify ${{ env.SOLANA_VERIFY_VERSION }}
+        run: command -v solana-verify || cargo install solana-verify --version "$SOLANA_VERIFY_VERSION" --locked
+      - name: Verifiable build of the program
+        run: solana-verify build --library-name darkseek_vault --base-image "$VERIFY_IMAGE"
+      - name: The committed IDL is the one the source builds
+        run: scripts/build-idl.sh --check
+      - run: npm ci
+      - run: npm test
+      - name: Assets and checksums
+        run: |
+          mkdir -p release
+          cp target/deploy/darkseek_vault.so programs/darkseek-vault/idl/darkseek_vault.json release/
+          npm pack -w @darkseek/sdk --pack-destination release
+          cd release
+          sha256sum darkseek_vault.so darkseek_vault.json darkseek-sdk-*.tgz > SHA256SUMS
+          cat SHA256SUMS
+          echo "PROGRAM_HASH=$(solana-verify get-executable-hash darkseek_vault.so)" >> "$GITHUB_ENV"
+      - uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
+        with:
+          subject-path: |
+            release/darkseek_vault.so
+            release/darkseek_vault.json
+            release/darkseek-sdk-*.tgz
+            release/SHA256SUMS
+      - name: Draft the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          cat > notes.md <<NOTES
+          Program hash (solana-verify): \`${PROGRAM_HASH}\`
+
+          Built with \`solana-verify build\` in \`${VERIFY_IMAGE}\` from commit ${GITHUB_SHA}.
+          Check these assets with \`scripts/verify-release.sh ${GITHUB_REF_NAME}\` (docs/verify.md).
+          See CHANGELOG.md for what changed and what the game server must do differently.
+          NOTES
+          gh release create "$GITHUB_REF_NAME" --draft --verify-tag --title "$GITHUB_REF_NAME" --notes-file notes.md release/*

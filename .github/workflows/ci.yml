@@ -1,0 +1,61 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  typescript:
+    name: SDK, scripts and repository checks
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run build -w @darkseek/sdk
+      - run: npm run typecheck
+      - name: SDK tests (rules, tokenomics, layouts against the IDL, verification)
+        run: npm test
+      - name: Every way value can leave the program, pinned in the source
+        run: npx tsx --test tests/source.test.ts
+      - run: scripts/scan-secrets.sh
+      - run: scripts/check-docs.sh
+
+  rust:
+    name: Program unit tests, format, lint, IDL
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Rust 1.100.0
+        run: |
+          rustup toolchain install 1.100.0 --profile minimal --component rustfmt,clippy
+          rustup default 1.100.0
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            ~/.cargo/registry/index
+            ~/.cargo/registry/cache
+            ~/.cargo/git/db
+            target
+            tools/idl-build/target
+          key: rust-host-${{ runner.os }}-${{ hashFiles('Cargo.lock', 'tools/idl-build/Cargo.lock') }}
+          restore-keys: rust-host-${{ runner.os }}-
+      - run: cargo fmt --manifest-path programs/darkseek-vault/Cargo.toml -- --check
+      - run: cargo clippy --manifest-path programs/darkseek-vault/Cargo.toml --all-targets -- -D warnings
+      - run: cargo test --manifest-path programs/darkseek-vault/Cargo.toml --lib
+      - name: The committed IDL is the one the source builds
+        run: scripts/build-idl.sh --check

@@ -1,0 +1,79 @@
+# The program, the scripts and the indexer against a real local validator, and
+# the time dependent paths in LiteSVM. Heavier than CI: it installs the Agave
+# toolchain (pinned and cached) and builds the program for SBF.
+name: Validator
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    paths:
+      - programs/**
+      - packages/sdk/**
+      - apps/indexer/**
+      - tests/**
+      - scripts/**
+      - Cargo.lock
+      - package-lock.json
+      - .github/workflows/validator.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: validator-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  AGAVE_VERSION: 4.4.1
+
+jobs:
+  validator:
+    name: Program, scripts and indexer on a local validator
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 22
+          cache: npm
+      - name: Rust 1.100.0
+        run: |
+          rustup toolchain install 1.100.0 --profile minimal
+          rustup default 1.100.0
+      - name: Cache the Agave toolchain and platform tools
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            ~/.local/share/solana
+            ~/.cache/solana
+          key: agave-${{ env.AGAVE_VERSION }}-${{ runner.os }}
+      - name: Install Agave ${{ env.AGAVE_VERSION }}
+        run: |
+          if [ ! -x "$HOME/.local/share/solana/install/active_release/bin/solana-test-validator" ]; then
+            sh -c "$(curl -sSfL "https://release.anza.xyz/v${AGAVE_VERSION}/install")"
+          fi
+          echo "$HOME/.local/share/solana/install/active_release/bin" >> "$GITHUB_PATH"
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            ~/.cargo/registry/index
+            ~/.cargo/registry/cache
+            ~/.cargo/git/db
+            target
+          key: rust-sbf-${{ runner.os }}-${{ env.AGAVE_VERSION }}-${{ hashFiles('Cargo.lock') }}
+          restore-keys: rust-sbf-${{ runner.os }}-${{ env.AGAVE_VERSION }}-
+      - run: solana --version && cargo build-sbf --version
+      - run: scripts/build-program.sh
+      - run: npm ci
+      - run: npm run build -w @darkseek/sdk
+      - name: LiteSVM (stale rounds, sessions, vesting, the auction over time)
+        run: npx tsx --test tests/timelocks.test.ts
+      - name: The program on a local validator
+        run: npx tsx --test tests/protocol.test.ts
+      - name: $DS creation, cluster setup and NFT checks on a local validator
+        run: npx tsx --test tests/token.test.ts
+      - name: The indexer on a local validator
+        run: npm test -w @darkseek/indexer
