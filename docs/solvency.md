@@ -91,10 +91,30 @@ value between counters without touching tokens:
 | `deposit_ds`, `withdraw_ds` | $DS custody up or down by x | vault free $DS up or down by x |
 | `stake_ds`, `unstake_ds` | none | x between vault free and staked $DS; config staked $DS follows |
 
-The validator tests (`tests/protocol.test.ts`, `tests/timelocks.test.ts`) check
-invariants 1 to 6 with exact equality after every step of every scenario:
-rounds won by either side, cancelled and stale rounds, purchases, staking,
-auction fills, buyback rounds, rebate claims and treasury sweeps.
+Three layers of tests hold the program to this table:
+
+- **Every outcome.** A round has 6,561 possible outcomes: each of the eight
+  Hiders survives or is caught by one of the two Seekers. The program's unit
+  tests compute the payouts of all of them, for both tiers, and check that no
+  round pays more than its pot and that the dust left over stays below one
+  base unit per survivor. The SDK checks that its decimal rules agree with the
+  program's on every one of them.
+- **Every scenario.** The validator tests (`tests/protocol.test.ts`,
+  `tests/timelocks.test.ts`) check invariants 1 to 6 with exact equality after
+  every step of every scenario: rounds won by either side, cancelled and stale
+  rounds, purchases, staking, auction fills, buyback rounds, rebate claims and
+  treasury sweeps.
+- **Random sequences.** `tests/invariants.test.ts` fuzzes the real program in
+  LiteSVM. Each seed plays a random sequence of everything players, the game
+  server, the admin and strangers can do: deposits, withdrawals, purchases and
+  payments, seats taken and left, rounds started, settled with random outcomes,
+  cancelled or left until anyone may unwind them, $DS deposited, staked and
+  withdrawn, rewards and rebates claimed, $DS sold into the auction, treasury
+  sweeps, and the clock moved. After every step the books must balance to the
+  base unit, every settlement must pay each seat exactly what `payoutsFor`
+  says, and a refused step must change nothing. CI runs six seeds of 160 steps
+  on every change; `FUZZ_SEEDS` and `FUZZ_STEPS` run longer campaigns, and
+  `FUZZ_SEED` replays the seed a failure prints.
 
 ## Check it yourself
 

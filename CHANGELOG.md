@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+- Tests: stateful fuzzing of the program in LiteSVM
+  (`tests/invariants.test.ts`). Seeded random sequences of every instruction,
+  with the books checked to the base unit after every step, every settlement
+  checked against the published payout rules, and every refused step checked
+  to change nothing. It runs in the Validator workflow.
+- Docs: VISION.md, why DarkSeek exists and where it is going; solvency.md
+  describes the three layers of tests.
 - The README presents DarkSeek as what it is, a Web3 hide and seek game, with
   this repository as its open onchain part, and shows the game. The issue
   templates take game bugs too. The program's crate description, and with it

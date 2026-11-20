@@ -71,6 +71,8 @@ jobs:
       - run: npm run build -w @darkseek/sdk
       - name: LiteSVM (stale rounds, sessions, vesting, the auction over time)
         run: npx tsx --test tests/timelocks.test.ts
+      - name: Fuzzing in LiteSVM (random instruction sequences, books checked after every step)
+        run: npx tsx --test tests/invariants.test.ts
       - name: The program on a local validator
         run: npx tsx --test tests/protocol.test.ts
       - name: $DS creation, cluster setup and NFT checks on a local validator

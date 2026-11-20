@@ -25,6 +25,8 @@ fee split and the $DS token follow rules anyone can read here and check on the
 chain. Play it at **[thedarkseek.xyz](https://thedarkseek.xyz)** (play money
 until launch; practice rounds against bots are always free).
 
+Why it exists and where it is going: [the vision](docs/VISION.md).
+
 ## How a round plays
 
 - **Ten players, blind pick.** Eight Hiders and two Seekers pick from 14 2D
@@ -66,6 +68,11 @@ Controls, roles, payouts and a FAQ for players are in the
   players who lost money that round (in $DS), 20% to buy back and burn $DS,
   and 50% to the treasury that runs the game. The treasury can never reach the
   other three.
+- **Solvent by construction.** Custody equals everything the program owes, to
+  the base unit, after every instruction. The tests check all 6,561 outcomes of
+  a round and fuzz random sequences of every instruction against the real
+  program; anyone can run the same check against a deployment
+  ([solvency.md](docs/solvency.md)).
 - **$DS.** A fixed supply token launched on pump.fun: no presale, no private
   allocation, and nobody can mint more. Staked $DS earns a share of every fee
   in USDC. Not launched yet; its address will be published in
@@ -120,7 +127,7 @@ tools/idl-build           builds the IDL without the Anchor CLI
 docs                      white paper, security model, solvency, fairness, verification
 ```
 
-Start with the [white paper](docs/WHITEPAPER.md). Then:
+Start with the [vision](docs/VISION.md) and the [white paper](docs/WHITEPAPER.md). Then:
 
 - [security-model.md](docs/security-model.md): every power the game server and
   the admin have, and what they cannot do
@@ -171,6 +178,7 @@ scripts/build-program.sh        # target/deploy/darkseek_vault.so
 npm test                        # SDK unit tests
 npm run test:program            # Rust unit tests, then the program on a local validator and in LiteSVM
 npm run test:indexer            # the indexer against a local validator
+npx tsx --test tests/invariants.test.ts   # fuzzing: random instruction sequences, books checked after every step
 scripts/build-idl.sh            # programs/darkseek-vault/idl/darkseek_vault.json
 ```
 

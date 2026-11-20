@@ -9,6 +9,8 @@ describes the game as far as it matters for the money, the protocol around it,
 and the $DS token. Everything it says about money can be checked against the
 program in this repository and against the chain.
 
+Why DarkSeek exists and where it is going is in [VISION.md](VISION.md).
+
 **Status.** Not deployed yet. The game runs at
 [thedarkseek.xyz](https://thedarkseek.xyz) (play money until launch). The
 program goes to Solana devnet first, with a test token that has no value, and
