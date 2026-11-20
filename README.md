@@ -8,6 +8,8 @@
 every stake is held and paid out by an open program onchain.
 
 [![Play](https://img.shields.io/badge/play-thedarkseek.xyz-8e1914)](https://thedarkseek.xyz)
+[![Game status](https://img.shields.io/endpoint?url=https%3A%2F%2Fthedarkseek.xyz%2Fapi%2Fbadge%2Fstatus)](https://thedarkseek.xyz/status)
+[![Uptime over 30 days](https://img.shields.io/endpoint?url=https%3A%2F%2Fthedarkseek.xyz%2Fapi%2Fbadge%2Fuptime)](https://thedarkseek.xyz/status)
 [![CI](https://github.com/nibblescreative-afk/darkseek/actions/workflows/ci.yml/badge.svg)](https://github.com/nibblescreative-afk/darkseek/actions/workflows/ci.yml)
 [![Validator](https://github.com/nibblescreative-afk/darkseek/actions/workflows/validator.yml/badge.svg)](https://github.com/nibblescreative-afk/darkseek/actions/workflows/validator.yml)
 [![Solana program: Anchor 1.2.2](https://img.shields.io/badge/Solana-Anchor%201.2.2-9945FF?logo=solana&logoColor=white)](programs/darkseek-vault)
@@ -208,6 +210,9 @@ money. The program, version 0.2.1, is not deployed yet: devnet first, then
 mainnet after an external audit and with the multisig upgrade authority
 described in the [security model](docs/security-model.md). The code has not
 been audited.
+
+Live health, uptime, incidents and the exact build the site runs (with the
+sha256 of every file it serves) are on the [status page](https://thedarkseek.xyz/status).
 
 ## Bugs and security
 
