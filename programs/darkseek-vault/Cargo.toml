@@ -1,0 +1,31 @@
+[package]
+name = "darkseek-vault"
+version = "0.2.0"
+edition = "2021"
+description = "DarkSeek protocol: player vaults, room escrow and settlement, the fee split, $DS staking, buyback and vesting"
+license = "BUSL-1.1"
+repository = "https://github.com/nibblescreative-afk/darkseek"
+publish = false
+
+[lib]
+crate-type = ["cdylib", "lib"]
+name = "darkseek_vault"
+
+[features]
+default = []
+no-entrypoint = []
+cpi = ["no-entrypoint"]
+idl-build = ["anchor-lang/idl-build", "anchor-spl/idl-build"]
+# switches the Anchor macros look for; none is used by release builds
+anchor-debug = []
+custom-heap = []
+custom-panic = []
+no-log-ix-name = []
+
+[dependencies]
+anchor-lang = "=1.2.2"
+anchor-spl = { version = "=1.2.2", default-features = false, features = ["token", "token_2022", "solana-v3"] }
+solana-security-txt = "=1.1.1"
+
+[lints.rust]
+unexpected_cfgs = { level = "warn", check-cfg = ['cfg(target_os, values("solana"))'] }

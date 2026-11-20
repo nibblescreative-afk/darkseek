@@ -1,0 +1,4074 @@
+{
+  "address": "4jNw2nbMz3ZHAH3dWcUrUbS78mfKPNqF1Bbq1x1vVJQt",
+  "metadata": {
+    "name": "darkseek_vault",
+    "version": "0.2.0",
+    "spec": "0.1.0",
+    "description": "DarkSeek protocol: player vaults, room escrow and settlement, the fee split, $DS staking, buyback and vesting",
+    "repository": "https://github.com/nibblescreative-afk/darkseek"
+  },
+  "instructions": [
+    {
+      "name": "abort_stale_round",
+      "docs": [
+        "Anyone may unwind a round that made no progress for two hours: a lobby",
+        "nobody joined or left (full refunds) or a live round never settled",
+        "(refunds less the fee)."
+      ],
+      "discriminator": [
+        34,
+        52,
+        113,
+        5,
+        122,
+        12,
+        245,
+        70
+      ],
+      "accounts": [
+        {
+          "name": "caller",
+          "signer": true
+        },
+        {
+          "name": "config",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "room",
+          "writable": true
+        }
+      ],
+      "args": [
+        {
+          "name": "round",
+          "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "accept_admin",
+      "docs": [
+        "Second step: the proposed key signs to take the admin role."
+      ],
+      "discriminator": [
+        112,
+        42,
+        45,
+        90,
+        116,
+        181,
+        13,
+        170
+      ],
+      "accounts": [
+        {
+          "name": "pending_admin",
+          "signer": true,
+          "relations": [
+            "config"
+          ]
+        },
+        {
+          "name": "config",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "cancel_round",
+      "docs": [
+        "The game server gives up on a round. Before the start every stake goes",
+        "back in full; after it, less the fee already taken. The remaining",
+        "accounts are the seated players' vaults, in slot order."
+      ],
+      "discriminator": [
+        82,
+        70,
+        134,
+        54,
+        46,
+        96,
+        148,
+        8
+      ],
+      "accounts": [
+        {
+          "name": "authority",
+          "signer": true,
+          "relations": [
+            "config"
+          ]
+        },
+        {
+          "name": "config",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "room",
+          "writable": true
+        }
+      ],
+      "args": [
+        {
+          "name": "round",
+          "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "charge",
+      "docs": [
+        "The owner pays the protocol from their vault (a shop purchase)."
+      ],
+      "discriminator": [
+        26,
+        55,
+        197,
+        209,
+        93,
+        77,
+        242,
+        15
+      ],
+      "accounts": [
+        {
+          "name": "owner",
+          "signer": true,
+          "relations": [
+            "vault"
+          ]
+        },
+        {
+          "name": "config",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "vault",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "owner"
+              }
+            ]
+          }
+        }
+      ],
+      "args": [
+        {
+          "name": "amount",
+          "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "claim_rebate",
+      "docs": [
+        "Turns a vault's rebate credit into $DS at the average price the rebate",
+        "pool paid for the $DS in the reserve, as far as the reserve reaches; the",
+        "rest waits for the auction's next purchases. Anyone may call it: the $DS",
+        "can only land in that vault."
+      ],
+      "discriminator": [
+        180,
+        77,
+        169,
+        215,
+        170,
+        162,
+        242,
+        1
+      ],
+      "accounts": [
+        {
+          "name": "config",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "vault",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "vault.owner",
+                "account": "Vault"
+              }
+            ]
+          }
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "claim_rewards",
+      "docs": [
+        "Moves a vault's USDC staking rewards into its free balance."
+      ],
+      "discriminator": [
+        4,
+        144,
+        132,
+        71,
+        116,
+        23,
+        151,
+        80
+      ],
+      "accounts": [
+        {
+          "name": "config",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "vault",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "vault.owner",
+                "account": "Vault"
+              }
+            ]
+          }
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "claim_vesting",
+      "docs": [
+        "Releases what has vested so far to the beneficiary's token account."
+      ],
+      "discriminator": [
+        134,
+        160,
+        202,
+        203,
+        151,
+        219,
+        16,
+        125
+      ],
+      "accounts": [
+        {
+          "name": "vesting",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  101,
+                  115,
+                  116,
+                  105,
+                  110,
+                  103
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "mint"
+              },
+              {
+                "kind": "account",
+                "path": "vesting.beneficiary",
+                "account": "Vesting"
+              },
+              {
+                "kind": "account",
+                "path": "vesting.id",
+                "account": "Vesting"
+              }
+            ]
+          }
+        },
+        {
+          "name": "mint",
+          "relations": [
+            "vesting"
+          ]
+        },
+        {
+          "name": "vesting_tokens",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  101,
+                  115,
+                  116,
+                  105,
+                  110,
+                  103,
+                  95,
+                  116,
+                  111,
+                  107,
+                  101,
+                  110,
+                  115
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "vesting"
+              }
+            ]
+          }
+        },
+        {
+          "name": "to",
+          "writable": true
+        },
+        {
+          "name": "token_program"
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "create_vesting",
+      "docs": [
+        "Locks `total` tokens of any mint (SPL Token or Token 2022) for",
+        "`beneficiary`: nothing before `cliff`, then a straight line from `start`",
+        "to `end`. Anyone may lock their own tokens this way; nobody can revoke",
+        "a lock or speed it up."
+      ],
+      "discriminator": [
+        135,
+        184,
+        171,
+        156,
+        197,
+        162,
+        246,
+        44
+      ],
+      "accounts": [
+        {
+          "name": "funder",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "beneficiary"
+        },
+        {
+          "name": "mint"
+        },
+        {
+          "name": "vesting",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  101,
+                  115,
+                  116,
+                  105,
+                  110,
+                  103
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "mint"
+              },
+              {
+                "kind": "account",
+                "path": "beneficiary"
+              },
+              {
+                "kind": "arg",
+                "path": "id"
+              }
+            ]
+          }
+        },
+        {
+          "name": "vesting_tokens",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  101,
+                  115,
+                  116,
+                  105,
+                  110,
+                  103,
+                  95,
+                  116,
+                  111,
+                  107,
+                  101,
+                  110,
+                  115
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "vesting"
+              }
+            ]
+          }
+        },
+        {
+          "name": "from",
+          "writable": true
+        },
+        {
+          "name": "token_program"
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "id",
+          "type": "u64"
+        },
+        {
+          "name": "total",
+          "type": "u64"
+        },
+        {
+          "name": "start",
+          "type": "i64"
+        },
+        {
+          "name": "cliff",
+          "type": "i64"
+        },
+        {
+          "name": "end",
+          "type": "i64"
+        }
+      ]
+    },
+    {
+      "name": "deposit",
+      "docs": [
+        "Moves USDC from the signer's token account into `vault` (own or anyone's)."
+      ],
+      "discriminator": [
+        242,
+        35,
+        198,
+        137,
+        82,
+        225,
+        242,
+        182
+      ],
+      "accounts": [
+        {
+          "name": "depositor",
+          "signer": true
+        },
+        {
+          "name": "config",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "mint",
+          "relations": [
+            "config"
+          ]
+        },
+        {
+          "name": "custody",
+          "writable": true,
+          "relations": [
+            "config"
+          ]
+        },
+        {
+          "name": "from",
+          "writable": true
+        },
+        {
+          "name": "vault",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "vault.owner",
+                "account": "Vault"
+              }
+            ]
+          }
+        },
+        {
+          "name": "token_program",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        }
+      ],
+      "args": [
+        {
+          "name": "amount",
+          "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "deposit_ds",
+      "docs": [
+        "Moves $DS from the signer's token account into `vault` (own or anyone's)."
+      ],
+      "discriminator": [
+        20,
+        100,
+        255,
+        93,
+        70,
+        39,
+        200,
+        94
+      ],
+      "accounts": [
+        {
+          "name": "depositor",
+          "signer": true
+        },
+        {
+          "name": "config",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "ds_mint",
+          "relations": [
+            "config"
+          ]
+        },
+        {
+          "name": "ds_custody",
+          "writable": true,
+          "relations": [
+            "config"
+          ]
+        },
+        {
+          "name": "from",
+          "writable": true
+        },
+        {
+          "name": "vault",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "vault.owner",
+                "account": "Vault"
+              }
+            ]
+          }
+        },
+        {
+          "name": "ds_token_program",
+          "relations": [
+            "config"
+          ]
+        }
+      ],
+      "args": [
+        {
+          "name": "amount",
+          "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "init_ds",
+      "docs": [
+        "Records the $DS mint, the buyback target and the auction's parameters,",
+        "once. The mint, SPL Token or Token 2022, must have a fixed supply (no mint",
+        "authority, no freeze authority), six decimals and no extension but",
+        "metadata. Nothing recorded here can change later."
+      ],
+      "discriminator": [
+        43,
+        30,
+        45,
+        156,
+        79,
+        62,
+        192,
+        116
+      ],
+      "accounts": [
+        {
+          "name": "admin",
+          "writable": true,
+          "signer": true,
+          "relations": [
+            "config"
+          ]
+        },
+        {
+          "name": "config",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "ds_mint"
+        },
+        {
+          "name": "ds_custody",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  100,
+                  115,
+                  95,
+                  99,
+                  117,
+                  115,
+                  116,
+                  111,
+                  100,
+                  121
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "ds_token_program"
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "args",
+          "type": {
+            "defined": {
+              "name": "DsArgs"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "init_room",
+      "docs": [
+        "Creates room `index` (1 to 6) with a fixed tier (0 casual, 1 pro)."
+      ],
+      "discriminator": [
+        166,
+        102,
+        103,
+        49,
+        179,
+        136,
+        136,
+        113
+      ],
+      "accounts": [
+        {
+          "name": "admin",
+          "writable": true,
+          "signer": true,
+          "relations": [
+            "config"
+          ]
+        },
+        {
+          "name": "config",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "room",
+          "writable": true
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "index",
+          "type": "u8"
+        },
+        {
+          "name": "tier",
+          "type": "u8"
+        }
+      ]
+    },
+    {
+      "name": "initialize",
+      "docs": [
+        "Creates the config and the USDC custody. Only the program's upgrade",
+        "authority may call it, once. Stakes, fee and split are fixed from here on."
+      ],
+      "discriminator": [
+        175,
+        175,
+        109,
+        31,
+        13,
+        152,
+        155,
+        237
+      ],
+      "accounts": [
+        {
+          "name": "admin",
+          "docs": [
+            "must be the program's upgrade authority"
+          ],
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "config",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "mint"
+        },
+        {
+          "name": "custody",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  117,
+                  115,
+                  116,
+                  111,
+                  100,
+                  121
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "program",
+          "address": "4jNw2nbMz3ZHAH3dWcUrUbS78mfKPNqF1Bbq1x1vVJQt"
+        },
+        {
+          "name": "program_data"
+        },
+        {
+          "name": "token_program",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "args",
+          "type": {
+            "defined": {
+              "name": "InitArgs"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "lock_stake",
+      "docs": [
+        "Puts the stake for `slot` (0 and 1 Seekers, 2 to 9 Hiders) into the room.",
+        "Needs the player's session and counts toward its daily cap."
+      ],
+      "discriminator": [
+        111,
+        186,
+        175,
+        228,
+        49,
+        165,
+        27,
+        248
+      ],
+      "accounts": [
+        {
+          "name": "authority",
+          "signer": true,
+          "relations": [
+            "config"
+          ]
+        },
+        {
+          "name": "config",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "room",
+          "writable": true
+        },
+        {
+          "name": "vault",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "vault.owner",
+                "account": "Vault"
+              }
+            ]
+          }
+        }
+      ],
+      "args": [
+        {
+          "name": "round",
+          "type": "u64"
+        },
+        {
+          "name": "slot",
+          "type": "u8"
+        }
+      ]
+    },
+    {
+      "name": "open_vault",
+      "docs": [
+        "Creates `owner`'s vault. Anyone may pay for it; the owner need not sign."
+      ],
+      "discriminator": [
+        181,
+        248,
+        228,
+        67,
+        6,
+        175,
+        37,
+        167
+      ],
+      "accounts": [
+        {
+          "name": "payer",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "owner"
+        },
+        {
+          "name": "vault",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "owner"
+              }
+            ]
+          }
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "pay",
+      "docs": [
+        "The owner pays another player's vault (a P2P purchase)."
+      ],
+      "discriminator": [
+        119,
+        18,
+        216,
+        65,
+        192,
+        117,
+        122,
+        220
+      ],
+      "accounts": [
+        {
+          "name": "owner",
+          "signer": true
+        },
+        {
+          "name": "from",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "owner"
+              }
+            ]
+          }
+        },
+        {
+          "name": "to",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "to.owner",
+                "account": "Vault"
+              }
+            ]
+          }
+        }
+      ],
+      "args": [
+        {
+          "name": "amount",
+          "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "propose_admin",
+      "docs": [
+        "First step of handing the admin role over (to a multisig, say). The",
+        "default key cancels a pending proposal."
+      ],
+      "discriminator": [
+        121,
+        214,
+        199,
+        212,
+        87,
+        39,
+        117,
+        234
+      ],
+      "accounts": [
+        {
+          "name": "admin",
+          "signer": true,
+          "relations": [
+            "config"
+          ]
+        },
+        {
+          "name": "config",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        }
+      ],
+      "args": [
+        {
+          "name": "pending_admin",
+          "type": "pubkey"
+        }
+      ]
+    },
+    {
+      "name": "sell_ds",
+      "docs": [
+        "Sells up to `max_ds` $DS to the program at the current auction price,",
+        "for at least `min_usdc`. The program pays from the rebate pool at any",
+        "time, and from the buyback pool only in buyback rounds: a round opens once",
+        "the pool holds the whole target and spends exactly the target. $DS bought",
+        "for the buyback is burned here and now; $DS bought for rebates joins the",
+        "reserve. When a round's budget is spent, the next target is 98% of this",
+        "one. The price then restarts at 1.5 times this fill."
+      ],
+      "discriminator": [
+        217,
+        245,
+        155,
+        161,
+        71,
+        230,
+        27,
+        145
+      ],
+      "accounts": [
+        {
+          "name": "seller",
+          "signer": true
+        },
+        {
+          "name": "config",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "mint",
+          "relations": [
+            "config"
+          ]
+        },
+        {
+          "name": "custody",
+          "writable": true,
+          "relations": [
+            "config"
+          ]
+        },
+        {
+          "name": "ds_mint",
+          "docs": [
+            "burning lowers the supply recorded in the mint"
+          ],
+          "writable": true,
+          "relations": [
+            "config"
+          ]
+        },
+        {
+          "name": "ds_custody",
+          "writable": true,
+          "relations": [
+            "config"
+          ]
+        },
+        {
+          "name": "seller_ds",
+          "writable": true
+        },
+        {
+          "name": "seller_usdc",
+          "writable": true
+        },
+        {
+          "name": "token_program",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        },
+        {
+          "name": "ds_token_program",
+          "relations": [
+            "config"
+          ]
+        }
+      ],
+      "args": [
+        {
+          "name": "max_ds",
+          "type": "u64"
+        },
+        {
+          "name": "min_usdc",
+          "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "set_authority",
+      "docs": [
+        "Replaces the game server's key."
+      ],
+      "discriminator": [
+        133,
+        250,
+        37,
+        21,
+        110,
+        163,
+        26,
+        121
+      ],
+      "accounts": [
+        {
+          "name": "admin",
+          "signer": true,
+          "relations": [
+            "config"
+          ]
+        },
+        {
+          "name": "config",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        }
+      ],
+      "args": [
+        {
+          "name": "authority",
+          "type": "pubkey"
+        }
+      ]
+    },
+    {
+      "name": "set_session",
+      "docs": [
+        "The owner lets the game server lock room stakes for them until",
+        "`expires_at`, at most `daily_cap` a day. A past `expires_at` revokes it."
+      ],
+      "discriminator": [
+        156,
+        135,
+        126,
+        111,
+        184,
+        206,
+        194,
+        141
+      ],
+      "accounts": [
+        {
+          "name": "owner",
+          "signer": true,
+          "relations": [
+            "vault"
+          ]
+        },
+        {
+          "name": "vault",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "owner"
+              }
+            ]
+          }
+        }
+      ],
+      "args": [
+        {
+          "name": "daily_cap",
+          "type": "u64"
+        },
+        {
+          "name": "expires_at",
+          "type": "i64"
+        }
+      ]
+    },
+    {
+      "name": "settle_round",
+      "docs": [
+        "Pays the round out by the rules. `outcomes[i]` is Hider slot 2 + i:",
+        "`SURVIVED`, or the Seeker slot (0 or 1) that caught it. The remaining",
+        "accounts are the ten seated players' vaults, in slot order."
+      ],
+      "discriminator": [
+        40,
+        101,
+        18,
+        1,
+        31,
+        129,
+        52,
+        77
+      ],
+      "accounts": [
+        {
+          "name": "authority",
+          "signer": true,
+          "relations": [
+            "config"
+          ]
+        },
+        {
+          "name": "config",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "room",
+          "writable": true
+        }
+      ],
+      "args": [
+        {
+          "name": "round",
+          "type": "u64"
+        },
+        {
+          "name": "outcomes",
+          "type": {
+            "array": [
+              "u8",
+              8
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "stake_ds",
+      "docs": [
+        "Stakes free $DS from the vault. Stakers share 10% of every fee (1% of",
+        "every stake) in USDC, pro rata to stake, from the next round that starts."
+      ],
+      "discriminator": [
+        145,
+        151,
+        180,
+        80,
+        204,
+        33,
+        94,
+        45
+      ],
+      "accounts": [
+        {
+          "name": "owner",
+          "signer": true,
+          "relations": [
+            "vault"
+          ]
+        },
+        {
+          "name": "config",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "vault",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "owner"
+              }
+            ]
+          }
+        }
+      ],
+      "args": [
+        {
+          "name": "amount",
+          "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "start_round",
+      "docs": [
+        "All ten seats are staked: the round goes live, the fee is taken seat by",
+        "seat and split by the fixed shares."
+      ],
+      "discriminator": [
+        144,
+        144,
+        43,
+        7,
+        193,
+        42,
+        217,
+        215
+      ],
+      "accounts": [
+        {
+          "name": "authority",
+          "signer": true,
+          "relations": [
+            "config"
+          ]
+        },
+        {
+          "name": "config",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "room",
+          "writable": true
+        }
+      ],
+      "args": [
+        {
+          "name": "round",
+          "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "sweep_treasury",
+      "docs": [
+        "The admin takes protocol revenue out of the treasury, and nothing else."
+      ],
+      "discriminator": [
+        125,
+        203,
+        4,
+        4,
+        87,
+        34,
+        238,
+        169
+      ],
+      "accounts": [
+        {
+          "name": "admin",
+          "signer": true,
+          "relations": [
+            "config"
+          ]
+        },
+        {
+          "name": "config",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "mint",
+          "relations": [
+            "config"
+          ]
+        },
+        {
+          "name": "custody",
+          "writable": true,
+          "relations": [
+            "config"
+          ]
+        },
+        {
+          "name": "to",
+          "writable": true
+        },
+        {
+          "name": "token_program",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        }
+      ],
+      "args": [
+        {
+          "name": "amount",
+          "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "unlock_stake",
+      "docs": [
+        "Someone left before the round started: their whole stake goes back."
+      ],
+      "discriminator": [
+        55,
+        193,
+        128,
+        39,
+        34,
+        38,
+        80,
+        107
+      ],
+      "accounts": [
+        {
+          "name": "authority",
+          "signer": true,
+          "relations": [
+            "config"
+          ]
+        },
+        {
+          "name": "config",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "room",
+          "writable": true
+        },
+        {
+          "name": "vault",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "vault.owner",
+                "account": "Vault"
+              }
+            ]
+          }
+        }
+      ],
+      "args": [
+        {
+          "name": "round",
+          "type": "u64"
+        },
+        {
+          "name": "slot",
+          "type": "u8"
+        }
+      ]
+    },
+    {
+      "name": "unstake_ds",
+      "docs": [
+        "Unstakes $DS back to the vault's free balance. No lockup."
+      ],
+      "discriminator": [
+        130,
+        61,
+        253,
+        2,
+        95,
+        246,
+        178,
+        59
+      ],
+      "accounts": [
+        {
+          "name": "owner",
+          "signer": true,
+          "relations": [
+            "vault"
+          ]
+        },
+        {
+          "name": "config",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "vault",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "owner"
+              }
+            ]
+          }
+        }
+      ],
+      "args": [
+        {
+          "name": "amount",
+          "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "withdraw",
+      "docs": [
+        "The owner takes free USDC out. Needs nothing from the game server."
+      ],
+      "discriminator": [
+        183,
+        18,
+        70,
+        156,
+        148,
+        109,
+        161,
+        34
+      ],
+      "accounts": [
+        {
+          "name": "owner",
+          "signer": true,
+          "relations": [
+            "vault"
+          ]
+        },
+        {
+          "name": "config",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "mint",
+          "relations": [
+            "config"
+          ]
+        },
+        {
+          "name": "custody",
+          "writable": true,
+          "relations": [
+            "config"
+          ]
+        },
+        {
+          "name": "to",
+          "writable": true
+        },
+        {
+          "name": "vault",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "owner"
+              }
+            ]
+          }
+        },
+        {
+          "name": "token_program",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        }
+      ],
+      "args": [
+        {
+          "name": "amount",
+          "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "withdraw_ds",
+      "docs": [
+        "The owner takes free $DS (rebates, deposits, unstaked) out of their vault."
+      ],
+      "discriminator": [
+        122,
+        163,
+        167,
+        165,
+        101,
+        67,
+        96,
+        81
+      ],
+      "accounts": [
+        {
+          "name": "owner",
+          "signer": true,
+          "relations": [
+            "vault"
+          ]
+        },
+        {
+          "name": "config",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "ds_mint",
+          "relations": [
+            "config"
+          ]
+        },
+        {
+          "name": "ds_custody",
+          "writable": true,
+          "relations": [
+            "config"
+          ]
+        },
+        {
+          "name": "to",
+          "writable": true
+        },
+        {
+          "name": "vault",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "owner"
+              }
+            ]
+          }
+        },
+        {
+          "name": "ds_token_program",
+          "relations": [
+            "config"
+          ]
+        }
+      ],
+      "args": [
+        {
+          "name": "amount",
+          "type": "u64"
+        }
+      ]
+    }
+  ],
+  "accounts": [
+    {
+      "name": "Config",
+      "discriminator": [
+        155,
+        12,
+        170,
+        224,
+        30,
+        250,
+        204,
+        130
+      ]
+    },
+    {
+      "name": "Room",
+      "discriminator": [
+        156,
+        199,
+        67,
+        27,
+        222,
+        23,
+        185,
+        94
+      ]
+    },
+    {
+      "name": "Vault",
+      "discriminator": [
+        211,
+        8,
+        232,
+        43,
+        2,
+        152,
+        117,
+        119
+      ]
+    },
+    {
+      "name": "Vesting",
+      "discriminator": [
+        100,
+        149,
+        66,
+        138,
+        95,
+        200,
+        128,
+        241
+      ]
+    }
+  ],
+  "events": [
+    {
+      "name": "AdminAccepted",
+      "discriminator": [
+        174,
+        12,
+        76,
+        139,
+        158,
+        99,
+        110,
+        254
+      ]
+    },
+    {
+      "name": "AdminProposed",
+      "discriminator": [
+        129,
+        249,
+        226,
+        227,
+        199,
+        82,
+        110,
+        243
+      ]
+    },
+    {
+      "name": "AuthoritySet",
+      "discriminator": [
+        122,
+        178,
+        145,
+        44,
+        172,
+        30,
+        25,
+        16
+      ]
+    },
+    {
+      "name": "Buyback",
+      "discriminator": [
+        61,
+        57,
+        48,
+        132,
+        64,
+        49,
+        186,
+        125
+      ]
+    },
+    {
+      "name": "Charged",
+      "discriminator": [
+        167,
+        170,
+        67,
+        179,
+        47,
+        88,
+        221,
+        132
+      ]
+    },
+    {
+      "name": "ConfigInitialized",
+      "discriminator": [
+        181,
+        49,
+        200,
+        156,
+        19,
+        167,
+        178,
+        91
+      ]
+    },
+    {
+      "name": "Deposited",
+      "discriminator": [
+        111,
+        141,
+        26,
+        45,
+        161,
+        35,
+        100,
+        57
+      ]
+    },
+    {
+      "name": "DsConfigured",
+      "discriminator": [
+        225,
+        137,
+        146,
+        200,
+        134,
+        42,
+        214,
+        94
+      ]
+    },
+    {
+      "name": "DsDeposited",
+      "discriminator": [
+        105,
+        163,
+        174,
+        164,
+        112,
+        59,
+        41,
+        158
+      ]
+    },
+    {
+      "name": "DsStaked",
+      "discriminator": [
+        187,
+        241,
+        248,
+        231,
+        250,
+        249,
+        138,
+        105
+      ]
+    },
+    {
+      "name": "DsUnstaked",
+      "discriminator": [
+        48,
+        179,
+        170,
+        187,
+        251,
+        42,
+        255,
+        202
+      ]
+    },
+    {
+      "name": "DsWithdrawn",
+      "discriminator": [
+        149,
+        99,
+        74,
+        127,
+        69,
+        103,
+        13,
+        116
+      ]
+    },
+    {
+      "name": "Paid",
+      "discriminator": [
+        240,
+        193,
+        17,
+        238,
+        238,
+        210,
+        129,
+        235
+      ]
+    },
+    {
+      "name": "RebateClaimed",
+      "discriminator": [
+        225,
+        106,
+        198,
+        84,
+        60,
+        69,
+        42,
+        135
+      ]
+    },
+    {
+      "name": "RewardsClaimed",
+      "discriminator": [
+        75,
+        98,
+        88,
+        18,
+        219,
+        112,
+        88,
+        121
+      ]
+    },
+    {
+      "name": "RoomCreated",
+      "discriminator": [
+        9,
+        177,
+        128,
+        166,
+        26,
+        19,
+        14,
+        243
+      ]
+    },
+    {
+      "name": "RoundRefunded",
+      "discriminator": [
+        203,
+        164,
+        53,
+        34,
+        132,
+        31,
+        105,
+        230
+      ]
+    },
+    {
+      "name": "RoundSettled",
+      "discriminator": [
+        249,
+        225,
+        66,
+        54,
+        157,
+        200,
+        234,
+        222
+      ]
+    },
+    {
+      "name": "RoundStarted",
+      "discriminator": [
+        180,
+        209,
+        2,
+        244,
+        238,
+        48,
+        170,
+        120
+      ]
+    },
+    {
+      "name": "SessionSet",
+      "discriminator": [
+        217,
+        40,
+        191,
+        250,
+        153,
+        135,
+        184,
+        144
+      ]
+    },
+    {
+      "name": "StakeLocked",
+      "discriminator": [
+        188,
+        253,
+        215,
+        110,
+        221,
+        193,
+        109,
+        44
+      ]
+    },
+    {
+      "name": "StakeUnlocked",
+      "discriminator": [
+        74,
+        89,
+        53,
+        221,
+        62,
+        32,
+        7,
+        81
+      ]
+    },
+    {
+      "name": "TreasurySwept",
+      "discriminator": [
+        235,
+        3,
+        4,
+        187,
+        184,
+        147,
+        44,
+        99
+      ]
+    },
+    {
+      "name": "VaultOpened",
+      "discriminator": [
+        198,
+        250,
+        195,
+        25,
+        26,
+        107,
+        197,
+        16
+      ]
+    },
+    {
+      "name": "VestingClaimed",
+      "discriminator": [
+        166,
+        62,
+        135,
+        158,
+        137,
+        1,
+        85,
+        15
+      ]
+    },
+    {
+      "name": "VestingCreated",
+      "discriminator": [
+        181,
+        223,
+        229,
+        220,
+        204,
+        6,
+        169,
+        125
+      ]
+    },
+    {
+      "name": "Withdrawn",
+      "discriminator": [
+        20,
+        89,
+        223,
+        198,
+        194,
+        124,
+        219,
+        13
+      ]
+    }
+  ],
+  "errors": [
+    {
+      "code": 6000,
+      "name": "NotAdmin",
+      "msg": "Only the DarkSeek admin may do this"
+    },
+    {
+      "code": 6001,
+      "name": "BadParams",
+      "msg": "Bad parameters"
+    },
+    {
+      "code": 6002,
+      "name": "BadAmount",
+      "msg": "Bad amount"
+    },
+    {
+      "code": 6003,
+      "name": "Overflow",
+      "msg": "Arithmetic overflow"
+    },
+    {
+      "code": 6004,
+      "name": "NoSession",
+      "msg": "This vault has no active session for the game server"
+    },
+    {
+      "code": 6005,
+      "name": "OverDailyCap",
+      "msg": "Daily cap of the game session reached"
+    },
+    {
+      "code": 6006,
+      "name": "InsufficientFunds",
+      "msg": "Not enough in the vault"
+    },
+    {
+      "code": 6007,
+      "name": "WrongRound",
+      "msg": "Wrong round for this room"
+    },
+    {
+      "code": 6008,
+      "name": "RoundRunning",
+      "msg": "A round is running in this room"
+    },
+    {
+      "code": 6009,
+      "name": "BadSlot",
+      "msg": "No such seat"
+    },
+    {
+      "code": 6010,
+      "name": "SeatTaken",
+      "msg": "That seat is taken"
+    },
+    {
+      "code": 6011,
+      "name": "AlreadySeated",
+      "msg": "This wallet already has a seat in the room"
+    },
+    {
+      "code": 6012,
+      "name": "RoomNotFull",
+      "msg": "A round starts only when all ten seats are staked"
+    },
+    {
+      "code": 6013,
+      "name": "MissingVault",
+      "msg": "A seated player's vault is missing or wrong"
+    },
+    {
+      "code": 6014,
+      "name": "BadOutcome",
+      "msg": "Bad round outcome"
+    },
+    {
+      "code": 6015,
+      "name": "NotStale",
+      "msg": "The round is not old enough to unwind"
+    },
+    {
+      "code": 6016,
+      "name": "NotPendingAdmin",
+      "msg": "Only the proposed admin may accept"
+    },
+    {
+      "code": 6017,
+      "name": "DsNotReady",
+      "msg": "The $DS mint is not recorded yet"
+    },
+    {
+      "code": 6018,
+      "name": "DsAlreadySet",
+      "msg": "The $DS mint is already recorded"
+    },
+    {
+      "code": 6019,
+      "name": "DsNotFixed",
+      "msg": "$DS must have a fixed supply: no mint or freeze authority"
+    },
+    {
+      "code": 6020,
+      "name": "BelowMinFill",
+      "msg": "The auction would take less than its minimum fill"
+    },
+    {
+      "code": 6021,
+      "name": "PriceMoved",
+      "msg": "The auction price moved past your limit"
+    },
+    {
+      "code": 6022,
+      "name": "NothingToClaim",
+      "msg": "Nothing to claim"
+    },
+    {
+      "code": 6023,
+      "name": "MintExtensionNotAllowed",
+      "msg": "This mint has an extension that could take, freeze, tax or block tokens"
+    }
+  ],
+  "types": [
+    {
+      "name": "AdminAccepted",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "previous",
+            "type": "pubkey"
+          },
+          {
+            "name": "admin",
+            "type": "pubkey"
+          }
+        ]
+      }
+    },
+    {
+      "name": "AdminProposed",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "admin",
+            "type": "pubkey"
+          },
+          {
+            "name": "pending_admin",
+            "type": "pubkey"
+          }
+        ]
+      }
+    },
+    {
+      "name": "Auction",
+      "docs": [
+        "The descending price auction that turns the buyback and rebate pools into $DS.",
+        "Prices are in $DS base units per whole USDC: a higher price means the program",
+        "asks for more $DS for each USDC it pays out."
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "last_price",
+            "docs": [
+              "price of the last fill (the genesis price until the first fill)"
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "started_at",
+            "docs": [
+              "when the current descent began: the last fill, or `init_ds`"
+            ],
+            "type": "i64"
+          },
+          {
+            "name": "floor_price",
+            "docs": [
+              "lowest price the auction ever asks, so the most USDC paid per $DS"
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "duration",
+            "docs": [
+              "seconds from the start price down to the floor"
+            ],
+            "type": "i64"
+          },
+          {
+            "name": "lot",
+            "docs": [
+              "most USDC a single fill may take"
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "min_fill",
+            "docs": [
+              "least USDC a single fill must take, unless it takes all that is on offer"
+            ],
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "AuthoritySet",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "previous",
+            "type": "pubkey"
+          },
+          {
+            "name": "authority",
+            "type": "pubkey"
+          }
+        ]
+      }
+    },
+    {
+      "name": "Buyback",
+      "docs": [
+        "One fill of the $DS auction."
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "seller",
+            "type": "pubkey"
+          },
+          {
+            "name": "price",
+            "docs": [
+              "$DS base units per whole USDC"
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "usdc",
+            "type": "u64"
+          },
+          {
+            "name": "ds",
+            "type": "u64"
+          },
+          {
+            "name": "ds_burned",
+            "type": "u64"
+          },
+          {
+            "name": "ds_to_reserve",
+            "type": "u64"
+          },
+          {
+            "name": "from_buyback",
+            "type": "u64"
+          },
+          {
+            "name": "from_rebate",
+            "type": "u64"
+          },
+          {
+            "name": "buyback_pool",
+            "type": "u64"
+          },
+          {
+            "name": "rebate_pool",
+            "type": "u64"
+          },
+          {
+            "name": "buyback_target",
+            "docs": [
+              "the target after this fill: lower by 2% each time a round completes"
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "buybacks_done",
+            "type": "u64"
+          },
+          {
+            "name": "buyback_round_left",
+            "docs": [
+              "USDC left in the open buyback round (0: none open)"
+            ],
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "Charged",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "owner",
+            "type": "pubkey"
+          },
+          {
+            "name": "amount",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "Config",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "admin",
+            "type": "pubkey"
+          },
+          {
+            "name": "pending_admin",
+            "docs": [
+              "set by `propose_admin`, takes over on `accept_admin`"
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "authority",
+            "docs": [
+              "the game server's key"
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "mint",
+            "docs": [
+              "the stake token (USDC)"
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "custody",
+            "type": "pubkey"
+          },
+          {
+            "name": "ds_mint",
+            "docs": [
+              "$DS, recorded once by `init_ds`, with the token program that owns it"
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "ds_custody",
+            "type": "pubkey"
+          },
+          {
+            "name": "ds_token_program",
+            "type": "pubkey"
+          },
+          {
+            "name": "stakes",
+            "docs": [
+              "[casual Hider, casual Seeker, pro Hider, pro Seeker] in base units"
+            ],
+            "type": {
+              "array": [
+                "u64",
+                4
+              ]
+            }
+          },
+          {
+            "name": "fee_bps",
+            "type": "u16"
+          },
+          {
+            "name": "split",
+            "type": {
+              "defined": {
+                "name": "FeeSplitBps"
+              }
+            }
+          },
+          {
+            "name": "decimals",
+            "type": "u8"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          },
+          {
+            "name": "treasury",
+            "type": "u64"
+          },
+          {
+            "name": "staker_pool",
+            "type": "u64"
+          },
+          {
+            "name": "rebate_pool",
+            "type": "u64"
+          },
+          {
+            "name": "buyback_pool",
+            "type": "u64"
+          },
+          {
+            "name": "buyback_target",
+            "docs": [
+              "USDC a buyback round spends: set once by `init_ds`, then only lowered by 2% per completed round"
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "buyback_target_initial",
+            "docs": [
+              "the target `init_ds` set; target n is this times 0.98^n, rounded down each time"
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "buybacks_done",
+            "docs": [
+              "completed buyback rounds"
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "buyback_round_left",
+            "docs": [
+              "USDC left to spend in the open buyback round (0: none open)"
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "ds_reserve",
+            "docs": [
+              "$DS the rebate pool bought and nobody has claimed yet"
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "reserve_cost",
+            "docs": [
+              "USDC the rebate pool paid for `ds_reserve`"
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "rebate_credits",
+            "docs": [
+              "USDC of rebates credited to vaults and not yet turned into $DS"
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "ds_staked",
+            "type": "u64"
+          },
+          {
+            "name": "reward_per_ds",
+            "docs": [
+              "USDC per staked $DS base unit, scaled by `REWARD_SCALE`"
+            ],
+            "type": "u128"
+          },
+          {
+            "name": "reward_carry",
+            "docs": [
+              "stakers' USDC not yet in the accumulator (nobody staked, or rounding), scaled by `REWARD_SCALE`"
+            ],
+            "type": "u128"
+          },
+          {
+            "name": "auction",
+            "type": {
+              "defined": {
+                "name": "Auction"
+              }
+            }
+          },
+          {
+            "name": "totals",
+            "type": {
+              "defined": {
+                "name": "Totals"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "ConfigInitialized",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "admin",
+            "type": "pubkey"
+          },
+          {
+            "name": "authority",
+            "type": "pubkey"
+          },
+          {
+            "name": "mint",
+            "type": "pubkey"
+          },
+          {
+            "name": "stakes",
+            "type": {
+              "array": [
+                "u64",
+                4
+              ]
+            }
+          },
+          {
+            "name": "fee_bps",
+            "type": "u16"
+          },
+          {
+            "name": "split",
+            "type": {
+              "defined": {
+                "name": "FeeSplitBps"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "Deposited",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "owner",
+            "type": "pubkey"
+          },
+          {
+            "name": "depositor",
+            "type": "pubkey"
+          },
+          {
+            "name": "amount",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "DsArgs",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "genesis_price",
+            "docs": [
+              "reference price until the first fill, in $DS base units per whole USDC"
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "floor_price",
+            "type": "u64"
+          },
+          {
+            "name": "duration",
+            "type": "i64"
+          },
+          {
+            "name": "lot",
+            "type": "u64"
+          },
+          {
+            "name": "min_fill",
+            "type": "u64"
+          },
+          {
+            "name": "buyback_target",
+            "docs": [
+              "USDC the first buyback round spends (half the USDC value of the launch buy)"
+            ],
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "DsConfigured",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "ds_mint",
+            "type": "pubkey"
+          },
+          {
+            "name": "ds_token_program",
+            "type": "pubkey"
+          },
+          {
+            "name": "buyback_target",
+            "docs": [
+              "USDC the first buyback round spends; each later round spends 98% of the one before"
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "genesis_price",
+            "type": "u64"
+          },
+          {
+            "name": "floor_price",
+            "type": "u64"
+          },
+          {
+            "name": "duration",
+            "type": "i64"
+          },
+          {
+            "name": "lot",
+            "type": "u64"
+          },
+          {
+            "name": "min_fill",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "DsDeposited",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "owner",
+            "type": "pubkey"
+          },
+          {
+            "name": "depositor",
+            "type": "pubkey"
+          },
+          {
+            "name": "amount",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "DsStaked",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "owner",
+            "type": "pubkey"
+          },
+          {
+            "name": "amount",
+            "type": "u64"
+          },
+          {
+            "name": "staked",
+            "type": "u64"
+          },
+          {
+            "name": "total_staked",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "DsUnstaked",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "owner",
+            "type": "pubkey"
+          },
+          {
+            "name": "amount",
+            "type": "u64"
+          },
+          {
+            "name": "staked",
+            "type": "u64"
+          },
+          {
+            "name": "total_staked",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "DsWithdrawn",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "owner",
+            "type": "pubkey"
+          },
+          {
+            "name": "to",
+            "type": "pubkey"
+          },
+          {
+            "name": "amount",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "FeeSplitBps",
+      "docs": [
+        "How the protocol fee is shared, in basis points of the fee. The four parts",
+        "must add up to 10 000; the treasury also takes any rounding remainder, so",
+        "the parts of every fee add up to the fee exactly."
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "stakers",
+            "docs": [
+              "$DS stakers, paid in USDC pro rata to stake"
+            ],
+            "type": "u16"
+          },
+          {
+            "name": "rebate",
+            "docs": [
+              "players who lost money in the round, paid in $DS"
+            ],
+            "type": "u16"
+          },
+          {
+            "name": "buyback",
+            "docs": [
+              "buys $DS in the auction and burns it"
+            ],
+            "type": "u16"
+          },
+          {
+            "name": "treasury",
+            "docs": [
+              "protocol treasury"
+            ],
+            "type": "u16"
+          }
+        ]
+      }
+    },
+    {
+      "name": "InitArgs",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "authority",
+            "docs": [
+              "the game server's key"
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "stakes",
+            "docs": [
+              "[casual Hider, casual Seeker, pro Hider, pro Seeker] in base units"
+            ],
+            "type": {
+              "array": [
+                "u64",
+                4
+              ]
+            }
+          },
+          {
+            "name": "fee_bps",
+            "type": "u16"
+          },
+          {
+            "name": "split",
+            "type": {
+              "defined": {
+                "name": "FeeSplitBps"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "Paid",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "from",
+            "type": "pubkey"
+          },
+          {
+            "name": "to",
+            "type": "pubkey"
+          },
+          {
+            "name": "amount",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "RebateClaimed",
+      "docs": [
+        "Rebate credit turned into $DS at the reserve's average purchase cost."
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "owner",
+            "type": "pubkey"
+          },
+          {
+            "name": "usdc",
+            "type": "u64"
+          },
+          {
+            "name": "ds",
+            "type": "u64"
+          },
+          {
+            "name": "credit_left",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "RewardsClaimed",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "owner",
+            "type": "pubkey"
+          },
+          {
+            "name": "amount",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "Room",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "index",
+            "type": "u8"
+          },
+          {
+            "name": "tier",
+            "docs": [
+              "0 casual, 1 pro"
+            ],
+            "type": "u8"
+          },
+          {
+            "name": "status",
+            "type": "u8"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          },
+          {
+            "name": "round",
+            "type": "u64"
+          },
+          {
+            "name": "pot",
+            "docs": [
+              "USDC in escrow for this round (net of the fee once live)"
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "fee",
+            "docs": [
+              "fee taken when the round started"
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "rebate",
+            "docs": [
+              "the part of the fee owed to this round's losers, credited at settlement"
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "started_at",
+            "type": "i64"
+          },
+          {
+            "name": "updated_at",
+            "docs": [
+              "last lock, unlock or start"
+            ],
+            "type": "i64"
+          },
+          {
+            "name": "seats",
+            "type": {
+              "array": [
+                {
+                  "defined": {
+                    "name": "Seat"
+                  }
+                },
+                10
+              ]
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "RoomCreated",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "room",
+            "type": "u8"
+          },
+          {
+            "name": "tier",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "RoundRefunded",
+      "docs": [
+        "Stakes went back without a result: in full before the start, less the fee after it."
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "room",
+            "type": "u8"
+          },
+          {
+            "name": "round",
+            "type": "u64"
+          },
+          {
+            "name": "after_start",
+            "type": "bool"
+          },
+          {
+            "name": "stale",
+            "type": "bool"
+          },
+          {
+            "name": "refunds",
+            "type": {
+              "array": [
+                "u64",
+                10
+              ]
+            }
+          },
+          {
+            "name": "rebate_usdc",
+            "docs": [
+              "after the start every seat lost the fee, so each is credited a share of the rebate"
+            ],
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "RoundSettled",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "room",
+            "type": "u8"
+          },
+          {
+            "name": "round",
+            "type": "u64"
+          },
+          {
+            "name": "seekers_won",
+            "type": "bool"
+          },
+          {
+            "name": "outcomes",
+            "type": {
+              "array": [
+                "u8",
+                8
+              ]
+            }
+          },
+          {
+            "name": "payouts",
+            "type": {
+              "array": [
+                "u64",
+                10
+              ]
+            }
+          },
+          {
+            "name": "losers",
+            "docs": [
+              "bit `slot` set: that seat lost money this round"
+            ],
+            "type": "u16"
+          },
+          {
+            "name": "rebate_usdc",
+            "docs": [
+              "USDC of rebate credited to each losing seat, paid in $DS by `claim_rebate`"
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "dust",
+            "docs": [
+              "rounding dust from the pot, added to the treasury"
+            ],
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "RoundStarted",
+      "docs": [
+        "The fee was taken and split when the round went live."
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "room",
+            "type": "u8"
+          },
+          {
+            "name": "round",
+            "type": "u64"
+          },
+          {
+            "name": "tier",
+            "type": "u8"
+          },
+          {
+            "name": "owners",
+            "type": {
+              "array": [
+                "pubkey",
+                10
+              ]
+            }
+          },
+          {
+            "name": "gross",
+            "type": "u64"
+          },
+          {
+            "name": "fee",
+            "type": "u64"
+          },
+          {
+            "name": "to_stakers",
+            "type": "u64"
+          },
+          {
+            "name": "to_rebate",
+            "type": "u64"
+          },
+          {
+            "name": "to_buyback",
+            "type": "u64"
+          },
+          {
+            "name": "to_treasury",
+            "type": "u64"
+          },
+          {
+            "name": "pot",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "Seat",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "owner",
+            "type": "pubkey"
+          },
+          {
+            "name": "stake",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "SessionSet",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "owner",
+            "type": "pubkey"
+          },
+          {
+            "name": "daily_cap",
+            "type": "u64"
+          },
+          {
+            "name": "expires_at",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "StakeLocked",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "room",
+            "type": "u8"
+          },
+          {
+            "name": "round",
+            "type": "u64"
+          },
+          {
+            "name": "slot",
+            "type": "u8"
+          },
+          {
+            "name": "owner",
+            "type": "pubkey"
+          },
+          {
+            "name": "stake",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "StakeUnlocked",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "room",
+            "type": "u8"
+          },
+          {
+            "name": "round",
+            "type": "u64"
+          },
+          {
+            "name": "slot",
+            "type": "u8"
+          },
+          {
+            "name": "owner",
+            "type": "pubkey"
+          },
+          {
+            "name": "stake",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "Totals",
+      "docs": [
+        "Running totals since initialization, so anyone can check the books from one account."
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "rounds_started",
+            "type": "u64"
+          },
+          {
+            "name": "rounds_settled",
+            "type": "u64"
+          },
+          {
+            "name": "rounds_refunded",
+            "type": "u64"
+          },
+          {
+            "name": "staked",
+            "docs": [
+              "gross stakes of every round that started"
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "fees",
+            "type": "u64"
+          },
+          {
+            "name": "to_stakers",
+            "type": "u64"
+          },
+          {
+            "name": "to_rebate",
+            "type": "u64"
+          },
+          {
+            "name": "to_buyback",
+            "type": "u64"
+          },
+          {
+            "name": "to_treasury",
+            "type": "u64"
+          },
+          {
+            "name": "buyback_spent",
+            "docs": [
+              "USDC paid out of the buyback pool by the auction"
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "rebate_spent",
+            "docs": [
+              "USDC paid out of the rebate pool by the auction"
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "ds_burned",
+            "type": "u64"
+          },
+          {
+            "name": "ds_to_reserve",
+            "docs": [
+              "$DS the rebate pool bought into the reserve"
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "rebates_credited",
+            "docs": [
+              "USDC of rebates credited to players who lost money"
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "rebates_claimed",
+            "docs": [
+              "USDC of rebate credits turned into $DS"
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "ds_rebated",
+            "docs": [
+              "$DS paid out of the reserve for those credits"
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "treasury_swept",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "TreasurySwept",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "to",
+            "type": "pubkey"
+          },
+          {
+            "name": "amount",
+            "type": "u64"
+          },
+          {
+            "name": "treasury",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "Vault",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "owner",
+            "type": "pubkey"
+          },
+          {
+            "name": "balance",
+            "docs": [
+              "USDC free to withdraw, stake in a room or spend"
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "locked",
+            "docs": [
+              "USDC in rooms right now"
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "session_expires",
+            "docs": [
+              "the game server may lock room stakes until then"
+            ],
+            "type": "i64"
+          },
+          {
+            "name": "daily_cap",
+            "docs": [
+              "most USDC the game server may lock in a day"
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "spent_day",
+            "type": "i64"
+          },
+          {
+            "name": "spent",
+            "type": "u64"
+          },
+          {
+            "name": "ds_balance",
+            "docs": [
+              "$DS free to withdraw or stake"
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "ds_staked",
+            "type": "u64"
+          },
+          {
+            "name": "reward_index",
+            "docs": [
+              "accumulator value at the last reward sync"
+            ],
+            "type": "u128"
+          },
+          {
+            "name": "rewards",
+            "docs": [
+              "USDC staking rewards synced but not yet claimed"
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "rebate_credit",
+            "docs": [
+              "USDC of rebates owed to this vault, paid in $DS by `claim_rebate`"
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "VaultOpened",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "owner",
+            "type": "pubkey"
+          },
+          {
+            "name": "payer",
+            "type": "pubkey"
+          }
+        ]
+      }
+    },
+    {
+      "name": "Vesting",
+      "docs": [
+        "Tokens locked for one beneficiary, released linearly between `start` and",
+        "`end`, nothing before `cliff`. Nobody can revoke it or release it early."
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "beneficiary",
+            "type": "pubkey"
+          },
+          {
+            "name": "mint",
+            "type": "pubkey"
+          },
+          {
+            "name": "funder",
+            "type": "pubkey"
+          },
+          {
+            "name": "id",
+            "type": "u64"
+          },
+          {
+            "name": "total",
+            "type": "u64"
+          },
+          {
+            "name": "claimed",
+            "type": "u64"
+          },
+          {
+            "name": "start",
+            "type": "i64"
+          },
+          {
+            "name": "cliff",
+            "type": "i64"
+          },
+          {
+            "name": "end",
+            "type": "i64"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "VestingClaimed",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "vesting",
+            "type": "pubkey"
+          },
+          {
+            "name": "beneficiary",
+            "type": "pubkey"
+          },
+          {
+            "name": "amount",
+            "type": "u64"
+          },
+          {
+            "name": "claimed",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "VestingCreated",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "vesting",
+            "type": "pubkey"
+          },
+          {
+            "name": "beneficiary",
+            "type": "pubkey"
+          },
+          {
+            "name": "mint",
+            "type": "pubkey"
+          },
+          {
+            "name": "funder",
+            "type": "pubkey"
+          },
+          {
+            "name": "id",
+            "type": "u64"
+          },
+          {
+            "name": "total",
+            "type": "u64"
+          },
+          {
+            "name": "start",
+            "type": "i64"
+          },
+          {
+            "name": "cliff",
+            "type": "i64"
+          },
+          {
+            "name": "end",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "Withdrawn",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "owner",
+            "type": "pubkey"
+          },
+          {
+            "name": "to",
+            "type": "pubkey"
+          },
+          {
+            "name": "amount",
+            "type": "u64"
+          }
+        ]
+      }
+    }
+  ]
+}

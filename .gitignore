@@ -1,0 +1,35 @@
+# Rust and Solana build output
+target/
+test-ledger/
+.anchor/
+
+# Node
+node_modules/
+dist/
+*.tsbuildinfo
+coverage/
+*.tgz
+
+# Release staging (scripts/release.sh)
+release/
+
+# Indexer data
+apps/indexer/data/
+*.sqlite
+*.sqlite-shm
+*.sqlite-wal
+
+# Keys and secrets never belong in this repository
+.env
+.env.*
+!.env.example
+*keypair*.json
+id.json
+keys/
+*.pem
+
+# Editors and OS
+.idea/
+.vscode/
+*.swp
+.DS_Store
