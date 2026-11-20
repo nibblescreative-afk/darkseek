@@ -2,7 +2,7 @@
 name = "darkseek-vault"
 version = "0.2.1"
 edition = "2021"
-description = "DarkSeek protocol: player vaults, room escrow and settlement, the fee split, $DS staking, buyback and vesting"
+description = "DarkSeek vault program: player vaults, room escrow and settlement, the fee split, $DS staking, buyback and vesting"
 license = "BUSL-1.1"
 repository = "https://github.com/nibblescreative-afk/darkseek"
 publish = false

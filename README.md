@@ -1,21 +1,83 @@
-# DarkSeek protocol
+<p align="center">
+  <a href="https://thedarkseek.xyz"><img src="docs/media/darkseek.jpg" alt="DarkSeek: a Seeker's flashlight catches three Hiders in a pitch black cave" width="100%"></a>
+</p>
 
+# DarkSeek
+
+**A Web3 hide and seek game on Solana.** Eight hide, two hunt, one light, and
+every stake is held and paid out by an open program onchain.
+
+[![Play](https://img.shields.io/badge/play-thedarkseek.xyz-8e1914)](https://thedarkseek.xyz)
 [![CI](https://github.com/nibblescreative-afk/darkseek/actions/workflows/ci.yml/badge.svg)](https://github.com/nibblescreative-afk/darkseek/actions/workflows/ci.yml)
+[![Validator](https://github.com/nibblescreative-afk/darkseek/actions/workflows/validator.yml/badge.svg)](https://github.com/nibblescreative-afk/darkseek/actions/workflows/validator.yml)
 [![License: BUSL 1.1](https://img.shields.io/badge/license-BUSL--1.1-blue)](LICENSE)
 
-DarkSeek is a hide and seek game played for stakes: eight Hiders and two
-Seekers in a pitch black cave, a 10 second head start, then a 2:00 hunt. Every
-staked seat is a real player, and the only money in a round is what its ten
-players put in. The game runs at [thedarkseek.xyz](https://thedarkseek.xyz)
-(play money until launch).
+DarkSeek is a multiplayer hide and seek game played for stakes in a pitch
+black cave. Hiders get a 10 second head start to vanish into the dark. Then
+two Seekers, each with a flashlight and a weapon, have 2:00 to catch every one
+of them. Catch them all and the Seekers win; leave one Hider standing and the
+Hiders win.
 
-This repository is the part of DarkSeek that touches money: the Solana program
-that holds every stake and pays every round, the SDK and tools to check it,
-the indexer that follows it, and the documents that say how the economy works.
-If you play, review the economy or audit the code, everything you need to
-check that there is no hidden code that harms players is here.
+It is a Web3 game because the money runs onchain. Players stake USDC from
+their own vault in a Solana program, the program pays out every round, and the
+fee split and the $DS token follow rules anyone can read here and check on the
+chain. Play it at **[thedarkseek.xyz](https://thedarkseek.xyz)** (play money
+until launch; practice rounds against bots are always free).
 
-## What is here
+## How a round plays
+
+- **Ten players, blind pick.** Eight Hiders and two Seekers pick from 14 2D
+  characters in secret. Three Hiders are dealt a role at random: healer,
+  jester or detective.
+- **Hide.** Hiders get a 10 second head start while the Seekers wait in the
+  dark. A Hider sees only a small circle around them.
+- **Hunt.** A Seeker's light follows the mouse, and every attack has a 1.5
+  second cooldown, whatever the weapon. The first hit wounds a Hider; the
+  second catches them.
+- **Win.** Seekers win only if every Hider is caught within 2:00. Otherwise
+  the Hiders win.
+- **People only.** A staked round starts only when all ten seats are staked by
+  the people in them. No bot ever takes a staked seat and the house never
+  plays.
+
+Six rooms run at once, three casual and three pro, on an authoritative server
+at 60 ticks a second. Each browser receives only what its player could see, so
+a modified client has nothing hidden to reveal.
+
+## The money, onchain
+
+| Stake per seat | Casual | Pro |
+|---|---:|---:|
+| Hider (8 seats) | 0.50 USDC | 2.50 USDC |
+| Seeker (2 seats) | 1.50 USDC | 7.50 USDC |
+
+- **Stakes.** A seat's stake is locked from the player's own vault when they
+  sit down, and comes back in full if they leave before the round starts.
+- **Payouts.** Each Seeker keeps the net stake (the stake minus the fee) of
+  every Hider they caught. If every Hider is caught, the Seekers also get
+  their own net stakes back; if not, the survivors get theirs back and split
+  both Seekers' net stakes. The game server only reports who caught whom; the
+  program does the math.
+- **A 10% fee, split onchain.** 10% of it goes to $DS stakers, 20% back to the
+  players who lost money that round (in $DS), 20% to buy back and burn $DS,
+  and 50% to the treasury that runs the game. The treasury can never reach the
+  other three.
+- **$DS.** A fixed supply token launched on pump.fun: no presale, no private
+  allocation, and nobody can mint more. Staked $DS earns a share of every fee
+  in USDC. Not launched yet; its address will be published in
+  [deployments.md](docs/deployments.md) and on the site.
+
+The [white paper](docs/WHITEPAPER.md) has the full rules, worked examples and
+the buyback schedule.
+
+## This repository
+
+The game is the product. This repository is the part of it that touches money:
+the Solana program that holds every stake and pays every round, the SDK and
+tools to check it, the indexer that follows it, and the documents that say how
+the economy works. If you play, review the economy or audit the code,
+everything you need to check that there is no hidden code that harms players
+is here.
 
 ```
 programs/darkseek-vault   the onchain program (Anchor): vaults, rooms, settlement, fee split,
@@ -40,9 +102,9 @@ Start with the [white paper](docs/WHITEPAPER.md). Then:
   checks, the website build
 - [deployments.md](docs/deployments.md): the addresses we vouch for
 
-## What is not here
+## What stays private
 
-The game itself stays private: the engine, the game server, the art, the
+The rest of the game stays private: the engine, the game server, the art, the
 characters' animation and the website. A game anyone could clone would be
 copied into look alike sites that take players' money, so we publish the part
 that must be trusted and keep the part that must be played. None of the
@@ -88,13 +150,18 @@ each step that custody equals what the program owes, to the base unit.
 
 ## Status
 
-Version 0.2.1, not deployed yet: devnet first, then mainnet after an external
-audit and with the multisig upgrade authority described in the
-[security model](docs/security-model.md). The code has not been audited.
+The game is playable at [thedarkseek.xyz](https://thedarkseek.xyz) with play
+money. The program, version 0.2.1, is not deployed yet: devnet first, then
+mainnet after an external audit and with the multisig upgrade authority
+described in the [security model](docs/security-model.md). The code has not
+been audited.
 
-## Security
+## Bugs and security
 
-Please report vulnerabilities privately; see [SECURITY.md](SECURITY.md).
+Found a bug in the game, the program, the SDK or the docs?
+[Open an issue](https://github.com/nibblescreative-afk/darkseek/issues/new/choose).
+Anything that could take or lock someone's funds must be reported privately
+instead; see [SECURITY.md](SECURITY.md).
 
 ## License
 

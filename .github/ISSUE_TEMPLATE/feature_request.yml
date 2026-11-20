@@ -1,5 +1,5 @@
 name: Feature request
-description: Propose a change to the protocol, the SDK, the indexer or the docs
+description: Propose a change to the game, the vault program, the SDK, the indexer or the docs
 labels: [enhancement]
 body:
   - type: textarea

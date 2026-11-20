@@ -2,7 +2,7 @@
 
 Version 0.2, November 2026. Amounts in USDC unless marked $DS.
 
-DarkSeek is a hide and seek game played for stakes. Eight Hiders and two
+DarkSeek is a Web3 hide and seek game played for stakes. Eight Hiders and two
 Seekers share a pitch black cave; the only money in a round is the money its
 ten players put in, and a program on Solana decides who gets it. This paper
 describes the game as far as it matters for the money, the protocol around it,
@@ -112,7 +112,7 @@ staker, rebate and buyback pools can never reach the treasury or the team.
 
 ## 5. $DS
 
-$DS is the protocol's token. Staked, it earns a share of every fee in USDC;
+$DS is DarkSeek's token. Staked, it earns a share of every fee in USDC;
 players who lose money in a round get part of the fee back in $DS.
 
 ### A fair launch on pump.fun

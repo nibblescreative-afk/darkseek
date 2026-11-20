@@ -15,7 +15,7 @@ your opponents.
 - A player who drops or goes quiet keeps their seat: their character stands
   still where it was (it can still be caught) until they reconnect. Nobody,
   human or bot, plays it for them.
-- The protocol earns the same 10% fee whoever wins, so it has no reason to
+- DarkSeek earns the same 10% fee whoever wins, so it has no reason to
   favour either side.
 
 ## Free characters are competitive

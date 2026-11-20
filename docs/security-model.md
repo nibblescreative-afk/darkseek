@@ -120,7 +120,7 @@ started (which costs every player the fee, never more). This trust is bounded:
 | `set_session` | let the game server lock room stakes until an expiry (at most 90 days), up to a daily cap; a past expiry revokes it |
 | `deposit` | put USDC from their token account into a vault (anyone can deposit into any vault) |
 | `withdraw` | take free USDC out, to any token account, at any time, without the game server |
-| `charge` | pay the protocol from the vault (a shop purchase) |
+| `charge` | pay the treasury from the vault (a shop purchase) |
 | `pay` | pay another player's vault (a P2P purchase) |
 | `deposit_ds` | put $DS into a vault (anyone can, into any vault) |
 | `withdraw_ds` | take free $DS (claimed rebates, deposits, unstaked $DS) out |

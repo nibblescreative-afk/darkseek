@@ -1,7 +1,7 @@
 # Releasing
 
-How a version of the protocol goes from a commit to the chain, so that every
-step leaves something anyone can check.
+How a version of the vault program goes from a commit to the chain, so that
+every step leaves something anyone can check.
 
 ## 1. Prepare
 

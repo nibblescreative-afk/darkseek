@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+
+- The README presents DarkSeek as what it is, a Web3 hide and seek game, with
+  this repository as its open onchain part, and shows the game. The issue
+  templates take game bugs too. The program's crate description, and with it
+  the IDL metadata, reads "DarkSeek vault program". No code changes.
+
 ## 0.2.1
 
 - Release workflow: the IDL check and the tests run before the verifiable

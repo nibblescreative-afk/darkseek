@@ -1,5 +1,5 @@
 name: Bug report
-description: Something in the program, the SDK, the indexer or the docs is wrong
+description: Something in the game, the program, the SDK, the indexer or the docs is wrong
 labels: [bug]
 body:
   - type: markdown
@@ -11,6 +11,7 @@ body:
     attributes:
       label: Where
       options:
+        - The game (thedarkseek.xyz)
         - Program (programs/darkseek-vault)
         - SDK or darkseek-verify
         - Indexer
@@ -28,14 +29,14 @@ body:
     id: repro
     attributes:
       label: How to reproduce
-      description: Commands, a transaction signature, or a test. Say which cluster.
+      description: For the game, the room, your side and character, your browser and what you did. For the code, commands, a transaction signature or a test, and which cluster.
     validations:
       required: true
   - type: input
     id: version
     attributes:
       label: Version or commit
-      placeholder: v0.2.0, or a commit hash
+      placeholder: v0.2.1, a commit hash, or when you played
   - type: textarea
     id: logs
     attributes:
