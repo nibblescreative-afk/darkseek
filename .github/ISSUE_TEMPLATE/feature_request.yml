@@ -1,0 +1,27 @@
+name: Feature request
+description: Propose a change to the protocol, the SDK, the indexer or the docs
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: The problem
+      description: What can't you do or check today?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: What you propose
+    validations:
+      required: true
+  - type: checkboxes
+    id: money
+    attributes:
+      label: Money paths
+      options:
+        - label: This would change who can move value, how much, or when (it will need a discussion before code)
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives you considered

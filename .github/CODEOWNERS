@@ -1,0 +1,8 @@
+# Every change is reviewed by a maintainer; changes to money paths need one explicitly.
+*                               @nibblescreative-afk
+/programs/                      @nibblescreative-afk
+/packages/sdk/src/rules.ts      @nibblescreative-afk
+/packages/sdk/src/verify.ts     @nibblescreative-afk
+/docs/security-model.md         @nibblescreative-afk
+/docs/solvency.md               @nibblescreative-afk
+/.github/workflows/             @nibblescreative-afk
