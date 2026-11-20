@@ -34,6 +34,6 @@
   },
   "dependencies": {
     "@noble/hashes": "^1.8.0",
-    "@solana/web3.js": "1.99.0"
+    "@solana/web3.js": "3.2.1"
   }
 }
