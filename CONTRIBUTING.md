@@ -9,8 +9,8 @@ that does not match the docs are as welcome as code.
 - **Changes to the money rules** (fees, payouts, the auction, staking) change
   what players were promised. Open an issue first so the change can be
   discussed before anyone writes code.
-- The game itself is not in this repository; issues about gameplay belong on
-  the game's own channels.
+- The game's engine and server are not in this repository, but game bugs are
+  welcome here: pick "The game" in the bug report form.
 
 ## Setup
 

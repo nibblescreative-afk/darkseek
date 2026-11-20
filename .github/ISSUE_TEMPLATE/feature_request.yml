@@ -1,6 +1,6 @@
 name: Feature request
 description: Propose a change to the game, the vault program, the SDK, the indexer or the docs
-labels: [enhancement]
+labels: [enhancement, "needs triage"]
 body:
   - type: textarea
     id: problem

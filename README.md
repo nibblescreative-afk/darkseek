@@ -10,6 +10,7 @@ every stake is held and paid out by an open program onchain.
 [![Play](https://img.shields.io/badge/play-thedarkseek.xyz-8e1914)](https://thedarkseek.xyz)
 [![CI](https://github.com/nibblescreative-afk/darkseek/actions/workflows/ci.yml/badge.svg)](https://github.com/nibblescreative-afk/darkseek/actions/workflows/ci.yml)
 [![Validator](https://github.com/nibblescreative-afk/darkseek/actions/workflows/validator.yml/badge.svg)](https://github.com/nibblescreative-afk/darkseek/actions/workflows/validator.yml)
+[![Solana program: Anchor 1.2.2](https://img.shields.io/badge/Solana-Anchor%201.2.2-9945FF?logo=solana&logoColor=white)](programs/darkseek-vault)
 [![License: BUSL 1.1](https://img.shields.io/badge/license-BUSL--1.1-blue)](LICENSE)
 
 DarkSeek is a multiplayer hide and seek game played for stakes in a pitch
@@ -69,6 +70,32 @@ a modified client has nothing hidden to reveal.
 
 The [white paper](docs/WHITEPAPER.md) has the full rules, worked examples and
 the buyback schedule.
+
+## How it fits together
+
+```mermaid
+flowchart LR
+  P(["Player's browser"])
+  S["Game server<br/>(private)"]
+  V[("darkseek-vault<br/>Solana program")]
+  I["Indexer<br/>stats and solvency"]
+  A(["Anyone"])
+  P -- "inputs" --> S
+  S -- "only what that<br/>player can see" --> P
+  P -- "deposit, withdraw, stake<br/>(signed by the player)" --> V
+  S -- "lock seat stakes,<br/>report who caught whom" --> V
+  V -- "events" --> I
+  A -- "darkseek-verify" --> V
+  A --> I
+```
+
+The game server runs the round; the program holds the money. The server can
+lock a seat's stake (only under that player's session and daily cap), give it
+back, start a full room and report who caught whom. It never chooses an
+amount: every payout, the fee split and every $DS movement is computed by the
+program from the published rules, within the limits in
+[security-model.md](docs/security-model.md), and anyone can check it from a
+public RPC.
 
 ## This repository
 

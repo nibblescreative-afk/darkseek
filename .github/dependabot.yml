@@ -4,15 +4,42 @@ updates:
     directory: /
     schedule:
       interval: weekly
+    labels: [dependencies, github_actions, "area: ci"]
+    commit-message:
+      prefix: ci
+    groups:
+      actions:
+        patterns: ["*"]
+
   - package-ecosystem: npm
     directory: /
     schedule:
       interval: weekly
     open-pull-requests-limit: 5
+    labels: [dependencies, javascript]
+    commit-message:
+      prefix: deps
+    groups:
+      npm-minor-and-patch:
+        update-types: [minor, patch]
+    ignore:
+      # Major versions are planned by hand, each with its own issue:
+      # @solana/web3.js 2 and later is a new API, @noble/hashes 2 is ESM only
+      # with new import paths, and @types/node follows the Node 22 runtime.
+      - dependency-name: "@solana/web3.js"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "@noble/hashes"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "@types/node"
+        update-types: ["version-update:semver-major"]
+
   - package-ecosystem: cargo
     directory: /
     schedule:
       interval: monthly
+    labels: [dependencies, rust, "area: program"]
+    commit-message:
+      prefix: deps
     ignore:
       # Anchor and the token programs move together with the toolchain, by hand
       - dependency-name: anchor-*

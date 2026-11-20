@@ -6,6 +6,10 @@
   this repository as its open onchain part, and shows the game. The issue
   templates take game bugs too. The program's crate description, and with it
   the IDL metadata, reads "DarkSeek vault program". No code changes.
+- Repository: labels as code (`.github/labels.json`, applied by the Labels
+  workflow), a dependency review check on every pull request, and grouped
+  Dependabot updates. Major versions of @solana/web3.js, @noble/hashes and
+  @types/node are planned by hand.
 
 ## 0.2.1
 

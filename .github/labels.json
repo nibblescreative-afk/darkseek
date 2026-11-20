@@ -1,0 +1,18 @@
+[
+  { "name": "area: game", "color": "8e1914", "description": "The game at thedarkseek.xyz (its engine and server are private)" },
+  { "name": "area: program", "color": "5319e7", "description": "The vault program in programs/darkseek-vault" },
+  { "name": "area: sdk", "color": "1d76db", "description": "The TypeScript SDK and darkseek-verify" },
+  { "name": "area: indexer", "color": "0e8a16", "description": "The indexer in apps/indexer" },
+  { "name": "area: ci", "color": "6e7781", "description": "Workflows, releases and scripts" },
+  { "name": "economy", "color": "d4a72c", "description": "Fees, payouts, rebates, staking, the buyback and $DS" },
+  { "name": "security", "color": "b60205", "description": "Hardening. Report vulnerabilities privately, never in an issue" },
+  { "name": "roadmap", "color": "0052cc", "description": "Planned work on the way to mainnet" },
+  { "name": "needs triage", "color": "ededed", "description": "Not looked at yet" },
+  { "name": "bug", "color": "d73a4a", "description": "Something does not work as documented" },
+  { "name": "enhancement", "color": "a2eeef", "description": "A new feature or a better way to do something" },
+  { "name": "documentation", "color": "0075ca", "description": "Docs, the white paper or comments" },
+  { "name": "dependencies", "color": "0366d6", "description": "Dependency updates" },
+  { "name": "javascript", "color": "168700", "description": "npm dependencies" },
+  { "name": "rust", "color": "dea584", "description": "Cargo dependencies" },
+  { "name": "github_actions", "color": "24292f", "description": "GitHub Actions dependencies" }
+]
