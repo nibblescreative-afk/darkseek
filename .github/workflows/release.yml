@@ -41,12 +41,14 @@ jobs:
           key: solana-verify-${{ env.SOLANA_VERIFY_VERSION }}-${{ runner.os }}
       - name: solana-verify ${{ env.SOLANA_VERIFY_VERSION }}
         run: command -v solana-verify || cargo install solana-verify --version "$SOLANA_VERIFY_VERSION" --locked
-      - name: Verifiable build of the program
-        run: solana-verify build --library-name darkseek_vault --base-image "$VERIFY_IMAGE"
       - name: The committed IDL is the one the source builds
         run: scripts/build-idl.sh --check
       - run: npm ci
       - run: npm test
+      - name: Verifiable build of the program
+        run: solana-verify build --library-name darkseek_vault --base-image "$VERIFY_IMAGE"
+      - name: Hand target/ back to the runner (the build container runs as root)
+        run: sudo chown -R "$(id -u):$(id -g)" target
       - name: Assets and checksums
         run: |
           mkdir -p release

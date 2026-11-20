@@ -88,7 +88,7 @@ each step that custody equals what the program owes, to the base unit.
 
 ## Status
 
-Version 0.2.0, not deployed yet: devnet first, then mainnet after an external
+Version 0.2.1, not deployed yet: devnet first, then mainnet after an external
 audit and with the multisig upgrade authority described in the
 [security model](docs/security-model.md). The code has not been audited.
 

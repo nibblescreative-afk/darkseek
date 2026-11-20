@@ -1,6 +1,14 @@
 # Changelog
 
-## 0.2.0 (unreleased)
+## 0.2.1
+
+- Release workflow: the IDL check and the tests run before the verifiable
+  build. The build container runs as root and left `target/` unwritable for
+  the steps after it, so the v0.2.0 release job stopped at the IDL check and
+  published nothing. Ownership of `target/` is handed back after the build.
+  The program, SDK and indexer are unchanged from 0.2.0.
+
+## 0.2.0
 
 The first public version of the protocol. Compared with the version the game
 was built against, rounds are people only, and the fee split, rebates,

@@ -1,6 +1,6 @@
 {
   "name": "@darkseek/sdk",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Read, build and verify everything the DarkSeek protocol does onchain",
   "license": "BUSL-1.1",
   "type": "module",
