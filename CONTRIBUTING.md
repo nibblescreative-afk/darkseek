@@ -35,6 +35,14 @@ devnet or mainnet.
 | an invariant | [docs/solvency.md](docs/solvency.md) and `solvencyFrom` in the SDK |
 | a number players see | [docs/WHITEPAPER.md](docs/WHITEPAPER.md), `PUBLISHED` in the SDK, and the game server (tell us in the PR) |
 
+## How changes land
+
+`main` is protected by a ruleset. A pull request is squashed into one commit,
+and it can merge only when CI, the validator tests and CodeQL pass and every
+review conversation is resolved. Force pushes and deleting `main` are
+blocked, and published releases are immutable, so a release's tag and files
+never change after the fact.
+
 ## Style
 
 - Rust: `cargo fmt`, `cargo clippy` clean. Checked arithmetic for anything that
