@@ -1,12 +1,11 @@
 import { PublicKey } from '@solana/web3.js';
 
 /**
- * The program id this source declares (`declare_id!`). It is a devnet demo
- * placeholder, not an official deployment: the official program id is
- * published in docs/deployments.md when the program is deployed, and every
- * builder and check takes the program id as an argument.
+ * The program id this source declares (`declare_id!`): the devnet deployment
+ * listed in docs/deployments.md. Every builder and check also takes the
+ * program id as an argument.
  */
-export const PROGRAM_ID = new PublicKey('4jNw2nbMz3ZHAH3dWcUrUbS78mfKPNqF1Bbq1x1vVJQt');
+export const PROGRAM_ID = new PublicKey('DarkHJqM8GMmCu7BWko6HMG4YgJgZ7jeEr2Qe967e5sE');
 
 export const TOKEN_PROGRAM_ID = new PublicKey('TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA');
 export const TOKEN_2022_PROGRAM_ID = new PublicKey('TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb');
@@ -64,19 +63,15 @@ export interface Deployment {
 }
 
 /**
- * Official deployments, as published in docs/deployments.md. Empty: nothing is
- * deployed yet. Filled in, with the release hash, when the owner deploys.
+ * Official deployments, as published in docs/deployments.md. Devnet stakes a
+ * test token with no value; there is no mainnet deployment yet.
  */
-export const DEPLOYMENTS: Partial<Record<Cluster, Deployment>> = {};
-
-/**
- * Devnet demo placeholders: the ids the source and the tests use. They are not
- * a deployment and nothing should be sent to them; tools use them only when no
- * program id is given, and say so.
- */
-export const DEMO_DEFAULTS: Deployment = {
-  cluster: 'devnet',
-  programId: PROGRAM_ID,
-  usdcMint: new PublicKey('87afD6thNbzSWfACfW5z4kmVL9jrnafGQAJQCj9iciz'),
-  dsMint: null,
+export const DEPLOYMENTS: Partial<Record<Cluster, Deployment>> = {
+  devnet: {
+    cluster: 'devnet',
+    programId: PROGRAM_ID,
+    /** test USDC: six decimals, no value, handed out by the game */
+    usdcMint: new PublicKey('34EifEmt9oXcyPNzCWEFjpp9nieq1XvgZKLKRuv1VZhj'),
+    dsMint: null,
+  },
 };

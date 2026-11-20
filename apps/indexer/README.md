@@ -22,7 +22,7 @@ docker run -p 8080:8080 -v darkseek-indexer:/data -e DS_RPC_URL=<rpc url> -e DS_
 | Variable | Default | |
 |---|---|---|
 | `DS_RPC_URL` | `https://api.devnet.solana.com` | any RPC endpoint |
-| `DS_PROGRAM_ID` | the devnet demo placeholder | the deployment to follow ([deployments.md](../../docs/deployments.md)) |
+| `DS_PROGRAM_ID` | the devnet deployment | the deployment to follow ([deployments.md](../../docs/deployments.md)) |
 | `DS_CLUSTER` | `devnet` | for Solscan links |
 | `DS_COMMITMENT` | `finalized` | `confirmed` is faster but can, rarely, see a block that is dropped |
 | `DS_DB_PATH` | `data/indexer.sqlite` | |

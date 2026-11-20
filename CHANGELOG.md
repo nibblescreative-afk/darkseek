@@ -1,7 +1,15 @@
 # Changelog
 
-## Unreleased
+## 0.3.0 (2026-11-20)
 
+- Devnet: the program's own id, `DarkHJqM8GMmCu7BWko6HMG4YgJgZ7jeEr2Qe967e5sE`,
+  in `declare_id!`, the IDL and the SDK, replacing the demo placeholder. This
+  release is the one deployed to devnet, with a test stake token
+  (`34EifEmt9oXcyPNzCWEFjpp9nieq1XvgZKLKRuv1VZhj`) and the addresses listed in
+  docs/deployments.md. Test money only.
+- SDK: `DEPLOYMENTS.devnet` is that deployment. `DEMO_DEFAULTS` is gone; the
+  verify CLI checks the cluster's official deployment and asks for
+  `--program` on a cluster that has none.
 - Tests: stateful fuzzing of the program in LiteSVM
   (`tests/invariants.test.ts`). Seeded random sequences of every instruction,
   with the books checked to the base unit after every step, every settlement

@@ -35,9 +35,10 @@ payoutsFor(PUBLISHED.stakes, PUBLISHED.feeBps, 0, [0, 0, 0, 1, 0xff, 0xff, 0xff,
 | `spl` | SPL Token and Token 2022 decoders (extensions included) and the few token instructions the scripts use |
 | `explorer` | Solscan links |
 
-`PROGRAM_ID` and `DEMO_DEFAULTS` are devnet demo placeholders, not a
-deployment; pass the program id of a deployment listed in
-[docs/deployments.md](../../docs/deployments.md).
+`PROGRAM_ID` is the devnet deployment's id and `DEPLOYMENTS` lists every
+official deployment, as published in
+[docs/deployments.md](../../docs/deployments.md). Builders and checks take a
+program id, so the same code follows any deployment.
 
 The `darkseek-verify` command runs the checks from a terminal; see
 [docs/verify.md](../../docs/verify.md).

@@ -38,7 +38,7 @@ use events::*;
 use rules::*;
 pub use state::*;
 
-declare_id!("4jNw2nbMz3ZHAH3dWcUrUbS78mfKPNqF1Bbq1x1vVJQt");
+declare_id!("DarkHJqM8GMmCu7BWko6HMG4YgJgZ7jeEr2Qe967e5sE");
 
 #[cfg(not(feature = "no-entrypoint"))]
 solana_security_txt::security_txt! {

@@ -4,11 +4,10 @@ What you can check without trusting anyone at DarkSeek, and how. You need Node
 22 and this repository; the program checks also use Docker and
 [solana-verify](https://github.com/Ellipsis-Labs/solana-verifiable-build).
 
-There is no official deployment yet. When there is one,
-[deployments.md](deployments.md) lists its program id, mints, upgrade
-authority and release; the commands below take those as arguments. Without
-`--program`, the tools fall back to the devnet demo placeholder ids in the
-source and say so; those are not a deployment.
+[deployments.md](deployments.md) lists every official deployment: its
+program id, mints, upgrade authority and release. Without `--program`, the
+tools check the official deployment of the cluster (devnet today); a cluster
+without one needs `--program`.
 
 ```sh
 git clone https://github.com/nibblescreative-afk/darkseek && cd darkseek

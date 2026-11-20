@@ -11,7 +11,7 @@ const log = (level: 'info' | 'warn' | 'error', msg: string, extra: Record<string
   console.log(JSON.stringify({ time: new Date().toISOString(), level, msg, ...extra }));
 
 const config = configFromEnv();
-if (config.programId.equals(PROGRAM_ID)) log('warn', 'following the devnet demo program id (the default); set DS_PROGRAM_ID for any other deployment');
+if (config.programId.equals(PROGRAM_ID)) log('info', 'following the devnet deployment (the default); set DS_PROGRAM_ID for another one');
 const conn = new Connection(config.rpcUrl, config.commitment);
 const store = new Store(config.dbPath);
 const follower = new Follower({ conn, programId: config.programId, store, commitment: config.commitment, log });

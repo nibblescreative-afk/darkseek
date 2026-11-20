@@ -1,13 +1,25 @@
 # Deployments
 
-**There is no official deployment yet.** The owner will deploy the program with
-their own wallet, devnet first, and list here, for each cluster:
+| Cluster | Status |
+|---|---|
+| Devnet | release v0.3.0 carries the devnet program id; listed below as deployed once it is live and verified |
+| Mainnet | not deployed: an external audit and the multisig come first |
 
-- the program id;
-- the upgrade authority and the admin (the multisig, for anything with real money);
-- the game server key;
-- the stake token mint;
-- the release tag and the hash of its verifiable build.
+Each deployment lists the program id, the upgrade authority and the admin (the
+multisig, for anything with real money), the game server key, the stake token
+mint, and the release tag with the hash of its verifiable build.
+
+## Devnet
+
+Test money only: the stake token has no value and the game hands it out.
+
+| | |
+|---|---|
+| Program id | `DarkHJqM8GMmCu7BWko6HMG4YgJgZ7jeEr2Qe967e5sE` |
+| Stake token (test USDC, six decimals) | `34EifEmt9oXcyPNzCWEFjpp9nieq1XvgZKLKRuv1VZhj` |
+| Game server key | `6VWtA4U4BjwNyviWJB8KxU6n4D2vykbd53MmimyNmVsq` |
+| Upgrade authority and admin | the owner's wallet, listed here after the handover |
+| Release | v0.3.0 |
 
 The game runs at [thedarkseek.xyz](https://thedarkseek.xyz), with play money
 until launch.
@@ -34,19 +46,11 @@ against the 98% rule.
 Until then, no program, token, site or wallet can claim to be the DarkSeek
 deployment. Check any address against this page before you sign anything.
 
-## Placeholders in the code
+## The program id in the code
 
-The ids in the source are devnet demo placeholders. They are not deployed, and
-nothing should be sent to them:
-
-| | Placeholder | Where |
-|---|---|---|
-| Program id | `4jNw2nbMz3ZHAH3dWcUrUbS78mfKPNqF1Bbq1x1vVJQt` | `declare_id!` in the program, `PROGRAM_ID` and `DEMO_DEFAULTS` in the SDK |
-| Test USDC | `87afD6thNbzSWfACfW5z4kmVL9jrnafGQAJQCj9iciz` | `DEMO_DEFAULTS` in the SDK |
-
-The tests deploy the program at the placeholder id on their own local
-validator. A real deployment sets its own program id in `declare_id!`, the SDK's
-`DEPLOYMENTS` and this page, in the same release.
+`declare_id!` in the program, `PROGRAM_ID` and `DEPLOYMENTS` in the SDK carry
+the devnet program id above. The tests deploy the program at that id on their
+own local validator, which is separate from devnet.
 
 ## Accounts of a deployment
 

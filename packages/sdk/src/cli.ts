@@ -4,7 +4,7 @@
 
 import { readFileSync } from 'node:fs';
 import { Connection, PublicKey } from '@solana/web3.js';
-import { DEMO_DEFAULTS, DEPLOYMENTS, type Cluster } from './constants.js';
+import { DEPLOYMENTS, PROGRAM_ID, type Cluster } from './constants.js';
 import { checkCharacterNft, checkDsMint, checkSolvency, configChecks, executableHash, fetchConfig, fetchProgramInfo, isUnset, toReport, type Check, type Report } from './verify.js';
 import { accountUrl } from './explorer.js';
 
@@ -23,9 +23,9 @@ const USAGE = `usage: darkseek-verify [all|config|solvency|program|ds-mint|nft] 
   --update-authority <key>   nft: the published metadata update authority
   --json                     print the reports as JSON
 
-Without --program, the official deployment for the cluster is used when one
-is published in docs/deployments.md; otherwise the devnet demo placeholder
-ids from the source, which are not a deployment.`;
+Without --program, the official deployment for the cluster is used, as
+published in docs/deployments.md (on localnet, the id in the source); any
+other cluster without one needs --program.`;
 
 function args(argv: string[]) {
   const out: { command: string; flags: Record<string, string | true> } = { command: 'all', flags: {} };
@@ -60,8 +60,11 @@ async function main(): Promise<number> {
   const official = DEPLOYMENTS[cluster];
   const conn = new Connection(str('rpc') ?? RPC[cluster], 'confirmed');
   const programArg = str('program');
-  const programId = new PublicKey(programArg ?? official?.programId ?? DEMO_DEFAULTS.programId);
-  const source = programArg ? 'given' : official ? 'official deployment' : 'devnet demo placeholder, not a deployment';
+  // a local validator runs the program at the id the source declares (scripts/localnet.sh)
+  const local = cluster === 'localnet' ? PROGRAM_ID : undefined;
+  if (!programArg && !official && !local) throw new Error(`no official deployment on ${cluster} yet: pass --program <id>`);
+  const programId = new PublicKey(programArg ?? official?.programId ?? local!);
+  const source = programArg ? 'given' : official ? 'official deployment' : 'the id in the source, on a local validator';
   const usdcMint = str('usdc-mint') ?? (programArg ? undefined : official?.usdcMint.toBase58());
   const dsMint = str('ds-mint') ?? (programArg ? undefined : official?.dsMint?.toBase58());
   const sections: [string, Report][] = [];
