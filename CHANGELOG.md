@@ -10,6 +10,9 @@
 - SDK: `DEPLOYMENTS.devnet` is that deployment. `DEMO_DEFAULTS` is gone; the
   verify CLI checks the cluster's official deployment and asks for
   `--program` on a cluster that has none.
+- `scripts/setup-cluster.ts --propose-admin <key>`: the first step of handing
+  the admin role on (to the owner's wallet on devnet, to the multisig before
+  mainnet); the proposed key accepts by signing `accept_admin` itself.
 - Tests: stateful fuzzing of the program in LiteSVM
   (`tests/invariants.test.ts`). Seeded random sequences of every instruction,
   with the books checked to the base unit after every step, every settlement

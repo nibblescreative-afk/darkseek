@@ -5,7 +5,7 @@
 //       --authority <game server pubkey> --usdc <USDC mint>
 //       [--ds-mint <$DS mint> --buyback-target <USDC base units> --genesis-price <$DS base units per USDC>]
 //       [--floor-price <...>] [--auction-hours 6] [--lot <USDC base units>] [--min-fill <USDC base units>]
-//       [--program <id>] [--mainnet]
+//       [--propose-admin <wallet or multisig>] [--program <id>] [--mainnet]
 //   on a local validator, --create-test-usdc makes a test USDC mint instead of --usdc
 //
 // Steps: initialize (published stakes, 10% fee split 10/20/20/50), rooms 1 to
@@ -15,6 +15,10 @@
 //   --floor-price     defaults to a thousandth of the genesis price: the
 //                     auction never pays more than 1000 times the launch price
 // All of these go into docs/deployments.md with the conversion used.
+//
+// --propose-admin hands the admin role on: the first step of two, the proposed
+// key takes the role by signing accept_admin itself. The upgrade authority is
+// handed on separately (solana program set-upgrade-authority).
 
 import { Connection, Keypair, PublicKey, SystemProgram } from '@solana/web3.js';
 import { MINT_SIZE, PROGRAM_ID, PUBLISHED, TOKEN_PROGRAM_ID, VaultInstructions, decodeConfig, pda, roomTier, splIxs, type DsArgs } from '../packages/sdk/src/index.js';
@@ -75,6 +79,17 @@ async function main() {
       log(`$DS ${dsMint.toBase58()} recorded (${mintInfo.owner.toBase58()}); first buyback round spends ${whole(args.buybackTarget)} USDC`);
     } else if (!config.dsMint.equals(dsMint)) throw new Error(`a different $DS mint is recorded: ${config.dsMint.toBase58()}`);
     else log('$DS already recorded');
+  }
+  if (typeof f['propose-admin'] === 'string') {
+    const next = new PublicKey(f['propose-admin']);
+    const config = decodeConfig((await conn.getAccountInfo(pda.config(programId)))!.data);
+    if (config.admin.equals(next)) log(`${next.toBase58()} is already the admin`);
+    else if (config.pendingAdmin.equals(next)) log(`${next.toBase58()} is already proposed: it accepts by signing accept_admin`);
+    else {
+      if (!config.admin.equals(admin.publicKey)) throw new Error(`only the admin (${config.admin.toBase58()}) can propose a new one`);
+      await send(conn, [ix.proposeAdmin(admin.publicKey, next)], [admin]);
+      log(`admin proposed: ${next.toBase58()} takes the role by signing accept_admin`);
+    }
   }
   log(`done on ${cluster}: program ${programId.toBase58()}, USDC ${usdc.toBase58()}`);
 }
