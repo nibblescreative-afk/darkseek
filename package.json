@@ -1,0 +1,32 @@
+{
+  "name": "darkseek-protocol",
+  "private": true,
+  "license": "BUSL-1.1",
+  "type": "module",
+  "workspaces": [
+    "packages/sdk",
+    "apps/indexer"
+  ],
+  "engines": {
+    "node": ">=22.13"
+  },
+  "scripts": {
+    "build": "npm run build -w @darkseek/sdk && npm run build -w @darkseek/indexer",
+    "typecheck": "npm run build -w @darkseek/sdk && npm run typecheck --workspaces && tsc -p tests/tsconfig.json --noEmit",
+    "test": "npm test -w @darkseek/sdk",
+    "build:program": "scripts/build-program.sh",
+    "test:program": "cargo test --manifest-path programs/darkseek-vault/Cargo.toml --lib && tsx --test --test-concurrency=1 tests/source.test.ts tests/timelocks.test.ts tests/protocol.test.ts tests/token.test.ts",
+    "test:indexer": "npm run build -w @darkseek/sdk && npm test -w @darkseek/indexer",
+    "idl": "scripts/build-idl.sh",
+    "scan:secrets": "scripts/scan-secrets.sh",
+    "verify": "tsx packages/sdk/src/cli.ts",
+    "check": "scripts/scan-secrets.sh && scripts/check-docs.sh"
+  },
+  "devDependencies": {
+    "@solana/kit": "^8.6.0",
+    "@types/node": "^22.19.0",
+    "litesvm": "^1.6.2",
+    "tsx": "^4.23.15",
+    "typescript": "^7.0.2"
+  }
+}
