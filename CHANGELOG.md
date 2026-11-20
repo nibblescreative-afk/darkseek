@@ -16,6 +16,8 @@
 - The README has the roadmap, with links to the project board, the
   milestones and the pinned Roadmap issue. The issue chooser no longer lists
   the vulnerability report twice (GitHub adds its own private report link).
+- ACCESSIBILITY.md: what works, the known limits of a game played in the
+  dark, and how to report a barrier.
 
 ## 0.2.1
 
