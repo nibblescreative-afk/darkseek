@@ -18,6 +18,9 @@
   the vulnerability report twice (GitHub adds its own private report link).
 - ACCESSIBILITY.md: what works, the known limits of a game played in the
   dark, and how to report a barrier.
+- Program: `solana-security-txt` 1.1.3 (was 1.1.1). The embedded security
+  contact is unchanged, but the program binary changes, so the next release
+  has a new program hash.
 
 ## 0.2.1
 
