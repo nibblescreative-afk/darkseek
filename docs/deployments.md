@@ -20,7 +20,7 @@ Test money only: the stake token has no value and the game hands it out.
 | Program hash (solana-verify) | `b6bf1f5ddc29fee71db96e8bccd72054ec679ab97749176235ccee545f5a0093` |
 | Deployed | 2026-11-21 08:26 UTC, slot 524651892 |
 | Upgrade authority | `D2tY97BpGjsGG9qjrcJERP6NnknV48PeQ2jevLptFdyn`, the owner's wallet |
-| Admin | proposed: `D2tY97BpGjsGG9qjrcJERP6NnknV48PeQ2jevLptFdyn`, the owner's wallet, takes the role by signing `accept_admin`; until then the deploy key `G4VKajGQSZx21HdbaGPpiXDsEvy4JLH9uHZhbH7AqVet` holds it |
+| Admin | `D2tY97BpGjsGG9qjrcJERP6NnknV48PeQ2jevLptFdyn`, the owner's wallet, since 2026-11-21 08:39 UTC: it signed `accept_admin` itself (transaction `51s91RBRA8TuKP7ih3BXc59xqzpRomaTeJomLY81myXC1Bz9fru4ji7RBgz5EzQtnwqvjtVG5YXd6wvnHKBbnXXZ`) |
 | Stake token (test USDC, six decimals) | `34EifEmt9oXcyPNzCWEFjpp9nieq1XvgZKLKRuv1VZhj`; the game server key may mint it, nobody can freeze it |
 | Game server key | `6VWtA4U4BjwNyviWJB8KxU6n4D2vykbd53MmimyNmVsq` |
 | Config account | `CSCcsHkyaANpznMQNXwgPLxigeCnQQLWRPMiV2hAtpsd` |
