@@ -23,7 +23,7 @@ addresses as on devnet.
 | Program hash (solana-verify) | `b6bf1f5ddc29fee71db96e8bccd72054ec679ab97749176235ccee545f5a0093` |
 | Deployed | 2026-11-21 18:57 UTC, slot 467367254 |
 | Upgrade authority | `D2tY97BpGjsGG9qjrcJERP6NnknV48PeQ2jevLptFdyn`, the owner's wallet |
-| Admin | proposed to `D2tY97BpGjsGG9qjrcJERP6NnknV48PeQ2jevLptFdyn`, the owner's wallet, which takes the role by signing `accept_admin` itself; until then the deployer key `G4VKajGQSZx21HdbaGPpiXDsEvy4JLH9uHZhbH7AqVet` holds it |
+| Admin | `D2tY97BpGjsGG9qjrcJERP6NnknV48PeQ2jevLptFdyn`, the owner's wallet, since 2026-11-21 19:15 UTC: it signed `accept_admin` itself (transaction `UFd8zr2Y…dQEEYs` in the [config account's history](https://solscan.io/account/CSCcsHkyaANpznMQNXwgPLxigeCnQQLWRPMiV2hAtpsd?cluster=testnet)) |
 | Stake token (test USDC, six decimals) | `34EifEmt9oXcyPNzCWEFjpp9nieq1XvgZKLKRuv1VZhj`; the game server key may mint it, nobody can freeze it |
 | Test $DS (test only, it is not $DS) | `6SrLNa3d3gZJaWNyLvhWvqCSbvfZYSgw3LDQ1WW3PbSw`, made by `scripts/test-ds-mint.ts` like a pump.fun mint: SPL Token, one billion with six decimals, no mint or freeze authority; the whole supply is in the owner's wallet |
 | Game server key | `6VWtA4U4BjwNyviWJB8KxU6n4D2vykbd53MmimyNmVsq` |
