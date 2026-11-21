@@ -30,8 +30,8 @@ docker run -p 8080:8080 -v darkseek-indexer:/data -e DS_RPC_URL=<rpc url> -e DS_
 | `DS_SOLVENCY_CACHE_MS` | `30000` | how long `/solvency` reuses a result |
 | `PORT`, `HOST` | `8080`, `0.0.0.0` | |
 
-Nothing is deployed yet, so the default program id follows nothing; the
-indexer says so in its log.
+By default it follows the devnet deployment listed in
+[deployments.md](../../docs/deployments.md); its log says which program it follows.
 
 ## API
 

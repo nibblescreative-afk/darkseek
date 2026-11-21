@@ -197,7 +197,7 @@ each step that custody equals what the program owes, to the base unit.
 | **Playable cave**: the cave, lighting, 14 characters, practice rounds | done |
 | **Online rooms**: six rooms on an authoritative 60 Hz server, people only staked rounds (play money) | done |
 | **Open onchain part**: this repository, with verifiable releases | done |
-| **Devnet**: the program deployed from a tagged release, test money only | in progress: v0.3.0 deployed and verified, staked rounds next |
+| **Devnet**: the program deployed from a tagged release, staked rounds settled by it, test money only | done |
 | **Mainnet and $DS**: external audit, multisig upgrade authority, $DS launched on pump.fun | planned |
 | **Seasons**: tournaments, replays, signed round results | planned |
 
@@ -207,9 +207,10 @@ Follow it on the [project board](https://github.com/users/nibblescreative-afk/pr
 
 ## Status
 
-The game is playable at [thedarkseek.xyz](https://thedarkseek.xyz) with play
-money. The program, version 0.3.0, runs on devnet with test money only, and
-the program onchain is the release build ([deployments.md](docs/deployments.md)).
+The game is playable at [thedarkseek.xyz](https://thedarkseek.xyz). Its staked
+rounds, shop and P2P payments go through the program on devnet, version 0.3.0,
+in test USDC that has no value ($DS is still play money), and the program
+onchain is the release build ([deployments.md](docs/deployments.md)).
 Mainnet comes after an external audit and with the multisig upgrade authority
 described in the [security model](docs/security-model.md). The code has not
 been audited.

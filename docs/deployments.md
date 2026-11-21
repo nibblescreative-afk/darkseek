@@ -33,8 +33,8 @@ scripts/verify-release.sh v0.3.0 --cluster devnet   # the program onchain is the
 npm run verify -- all --cluster devnet              # settings, solvency, roles
 ```
 
-The game runs at [thedarkseek.xyz](https://thedarkseek.xyz), with play money
-until staked rounds move onchain.
+The game at [thedarkseek.xyz](https://thedarkseek.xyz) runs its staked rounds,
+shop and P2P payments through this deployment, in test USDC.
 
 ## $DS at launch
 
