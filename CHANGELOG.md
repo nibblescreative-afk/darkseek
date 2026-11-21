@@ -1,5 +1,16 @@
 # Changelog
 
+## Unreleased
+
+- Testnet: release v0.3.0 deployed on Solana testnet at the same program id
+  and addresses as on devnet (docs/deployments.md), with a test only token
+  shaped like a pump.fun mint recorded by `init_ds`, so the $DS settings are
+  checked onchain too. The game runs there now. Test money only.
+- SDK: `testnet` is a known cluster. `DEPLOYMENTS.testnet` is that
+  deployment, `darkseek-verify --cluster testnet` uses the public testnet RPC,
+  and Solscan links carry `?cluster=testnet`. The scripts recognise the
+  testnet genesis hash.
+
 ## 0.3.0 (2026-11-20)
 
 - Devnet: the program's own id, `DarkHJqM8GMmCu7BWko6HMG4YgJgZ7jeEr2Qe967e5sE`,

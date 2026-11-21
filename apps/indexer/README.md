@@ -32,6 +32,9 @@ docker run -p 8080:8080 -v darkseek-indexer:/data -e DS_RPC_URL=<rpc url> -e DS_
 
 By default it follows the devnet deployment listed in
 [deployments.md](../../docs/deployments.md); its log says which program it follows.
+For the testnet deployment, where the game runs now, set
+`DS_RPC_URL=https://api.testnet.solana.com` and `DS_CLUSTER=testnet` (the program
+id is the same).
 
 ## API
 

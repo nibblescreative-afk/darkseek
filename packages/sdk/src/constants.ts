@@ -1,9 +1,9 @@
 import { PublicKey } from '@solana/web3.js';
 
 /**
- * The program id this source declares (`declare_id!`): the devnet deployment
- * listed in docs/deployments.md. Every builder and check also takes the
- * program id as an argument.
+ * The program id this source declares (`declare_id!`): the devnet and testnet
+ * deployments listed in docs/deployments.md. Every builder and check also
+ * takes the program id as an argument.
  */
 export const PROGRAM_ID = new PublicKey('DarkHJqM8GMmCu7BWko6HMG4YgJgZ7jeEr2Qe967e5sE');
 
@@ -56,15 +56,16 @@ export type Cluster = 'devnet' | 'testnet' | 'mainnet-beta' | 'localnet';
 export interface Deployment {
   cluster: Cluster;
   programId: PublicKey;
-  /** the stake token: USDC, or a test token with no value on devnet */
+  /** the stake token: USDC, or a test token with no value on devnet and testnet */
   usdcMint: PublicKey;
-  /** null until $DS exists on that cluster */
+  /** null until $DS exists on that cluster; on testnet a test only token shaped like a pump.fun mint */
   dsMint: PublicKey | null;
 }
 
 /**
- * Official deployments, as published in docs/deployments.md. Devnet stakes a
- * test token with no value; there is no mainnet deployment yet.
+ * Official deployments, as published in docs/deployments.md. Devnet and
+ * testnet stake a test token with no value (the same mint address on both);
+ * there is no mainnet deployment yet.
  */
 export const DEPLOYMENTS: Partial<Record<Cluster, Deployment>> = {
   devnet: {
@@ -73,5 +74,13 @@ export const DEPLOYMENTS: Partial<Record<Cluster, Deployment>> = {
     /** test USDC: six decimals, no value, handed out by the game */
     usdcMint: new PublicKey('34EifEmt9oXcyPNzCWEFjpp9nieq1XvgZKLKRuv1VZhj'),
     dsMint: null,
+  },
+  testnet: {
+    cluster: 'testnet',
+    programId: PROGRAM_ID,
+    /** the same test USDC address as on devnet */
+    usdcMint: new PublicKey('34EifEmt9oXcyPNzCWEFjpp9nieq1XvgZKLKRuv1VZhj'),
+    /** TEST ONLY: made by scripts/test-ds-mint.ts and recorded by init_ds; it is not $DS */
+    dsMint: new PublicKey('6SrLNa3d3gZJaWNyLvhWvqCSbvfZYSgw3LDQ1WW3PbSw'),
   },
 };

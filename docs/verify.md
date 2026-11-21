@@ -6,7 +6,7 @@ What you can check without trusting anyone at DarkSeek, and how. You need Node
 
 [deployments.md](deployments.md) lists every official deployment: its
 program id, mints, upgrade authority and release. Without `--program`, the
-tools check the official deployment of the cluster (devnet today); a cluster
+tools check the official deployment of the cluster (devnet and testnet today); a cluster
 without one needs `--program`.
 
 ```sh

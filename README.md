@@ -155,19 +155,19 @@ build so you can check the site serves the released build.
 
 ## Check it
 
-The program runs on devnet, deployed from release v0.3.0
+The program runs on testnet and devnet, both deployed from release v0.3.0
 ([deployments.md](docs/deployments.md) lists every address). One command checks
-it from any public RPC:
+a deployment from any public RPC:
 
 ```sh
 npm ci
-npm run verify -- all --cluster devnet
+npm run verify -- all --cluster testnet
 ```
 
 It checks the settings against the white paper, the $DS mint, solvency
 (custody covers every balance owed) and the program hash;
-`scripts/verify-release.sh v0.3.0 --cluster devnet` checks that the program
-onchain is the release build. Details in
+`scripts/verify-release.sh v0.3.0 --cluster testnet` checks that the program
+onchain is the release build. Pass `--cluster devnet` for the devnet one. Details in
 [verify.md](docs/verify.md). The same checks run in the tests against a local
 validator.
 
@@ -198,6 +198,7 @@ each step that custody equals what the program owes, to the base unit.
 | **Online rooms**: six rooms on an authoritative 60 Hz server, people only staked rounds (play money) | done |
 | **Open onchain part**: this repository, with verifiable releases | done |
 | **Devnet**: the program deployed from a tagged release, staked rounds settled by it, test money only | done |
+| **Testnet**: the same release on Solana testnet, where the game runs now, test money only | done |
 | **Mainnet and $DS**: external audit, multisig upgrade authority, $DS launched on pump.fun | planned |
 | **Seasons**: tournaments, replays, signed round results | planned |
 
@@ -208,9 +209,10 @@ Follow it on the [project board](https://github.com/users/nibblescreative-afk/pr
 ## Status
 
 The game is playable at [thedarkseek.xyz](https://thedarkseek.xyz). Its staked
-rounds, shop and P2P payments go through the program on devnet, version 0.3.0,
-in test USDC that has no value ($DS is still play money), and the program
-onchain is the release build ([deployments.md](docs/deployments.md)).
+rounds, shop and P2P payments go through the program on testnet, version 0.3.0,
+in test USDC that has no value ($DS is still play money in the game), and on
+testnet and devnet alike the program onchain is the release build
+([deployments.md](docs/deployments.md)).
 Mainnet comes after an external audit and with the multisig upgrade authority
 described in the [security model](docs/security-model.md). The code has not
 been audited.
