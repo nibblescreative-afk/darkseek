@@ -155,17 +155,19 @@ build so you can check the site serves the released build.
 
 ## Check it
 
-Nothing is deployed yet ([deployments.md](docs/deployments.md) will list the
-official deployment). Once a deployment is listed, one command checks it from
-any public RPC:
+The program runs on devnet, deployed from release v0.3.0
+([deployments.md](docs/deployments.md) lists every address). One command checks
+it from any public RPC:
 
 ```sh
 npm ci
-npm run verify -- all --cluster devnet --program <program id> --usdc-mint <mint> --ds-mint <mint>
+npm run verify -- all --cluster devnet
 ```
 
 It checks the settings against the white paper, the $DS mint, solvency
-(custody covers every balance owed) and the program hash. Details in
+(custody covers every balance owed) and the program hash;
+`scripts/verify-release.sh v0.3.0 --cluster devnet` checks that the program
+onchain is the release build. Details in
 [verify.md](docs/verify.md). The same checks run in the tests against a local
 validator.
 
@@ -195,7 +197,7 @@ each step that custody equals what the program owes, to the base unit.
 | **Playable cave**: the cave, lighting, 14 characters, practice rounds | done |
 | **Online rooms**: six rooms on an authoritative 60 Hz server, people only staked rounds (play money) | done |
 | **Open onchain part**: this repository, with verifiable releases | done |
-| **Devnet**: the program deployed from a tagged release, test money only | next |
+| **Devnet**: the program deployed from a tagged release, test money only | in progress: v0.3.0 deployed and verified, staked rounds next |
 | **Mainnet and $DS**: external audit, multisig upgrade authority, $DS launched on pump.fun | planned |
 | **Seasons**: tournaments, replays, signed round results | planned |
 
@@ -206,8 +208,9 @@ Follow it on the [project board](https://github.com/users/nibblescreative-afk/pr
 ## Status
 
 The game is playable at [thedarkseek.xyz](https://thedarkseek.xyz) with play
-money. The program, version 0.2.1, is not deployed yet: devnet first, then
-mainnet after an external audit and with the multisig upgrade authority
+money. The program, version 0.3.0, runs on devnet with test money only, and
+the program onchain is the release build ([deployments.md](docs/deployments.md)).
+Mainnet comes after an external audit and with the multisig upgrade authority
 described in the [security model](docs/security-model.md). The code has not
 been audited.
 

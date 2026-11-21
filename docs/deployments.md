@@ -2,7 +2,7 @@
 
 | Cluster | Status |
 |---|---|
-| Devnet | release v0.3.0 carries the devnet program id; listed below as deployed once it is live and verified |
+| Devnet | deployed from release v0.3.0 on 2026-11-21 and verified: the program onchain is the release build |
 | Mainnet | not deployed: an external audit and the multisig come first |
 
 Each deployment lists the program id, the upgrade authority and the admin (the
@@ -16,13 +16,25 @@ Test money only: the stake token has no value and the game hands it out.
 | | |
 |---|---|
 | Program id | `DarkHJqM8GMmCu7BWko6HMG4YgJgZ7jeEr2Qe967e5sE` |
-| Stake token (test USDC, six decimals) | `34EifEmt9oXcyPNzCWEFjpp9nieq1XvgZKLKRuv1VZhj` |
+| Release | [v0.3.0](https://github.com/nibblescreative-afk/darkseek/releases/tag/v0.3.0) |
+| Program hash (solana-verify) | `b6bf1f5ddc29fee71db96e8bccd72054ec679ab97749176235ccee545f5a0093` |
+| Deployed | 2026-11-21 08:26 UTC, slot 524651892 |
+| Upgrade authority | `D2tY97BpGjsGG9qjrcJERP6NnknV48PeQ2jevLptFdyn`, the owner's wallet |
+| Admin | proposed: `D2tY97BpGjsGG9qjrcJERP6NnknV48PeQ2jevLptFdyn`, the owner's wallet, takes the role by signing `accept_admin`; until then the deploy key `G4VKajGQSZx21HdbaGPpiXDsEvy4JLH9uHZhbH7AqVet` holds it |
+| Stake token (test USDC, six decimals) | `34EifEmt9oXcyPNzCWEFjpp9nieq1XvgZKLKRuv1VZhj`; the game server key may mint it, nobody can freeze it |
 | Game server key | `6VWtA4U4BjwNyviWJB8KxU6n4D2vykbd53MmimyNmVsq` |
-| Upgrade authority and admin | the owner's wallet, listed here after the handover |
-| Release | v0.3.0 |
+| Config account | `CSCcsHkyaANpznMQNXwgPLxigeCnQQLWRPMiV2hAtpsd` |
+
+Check it yourself, from a clone of this repository:
+
+```sh
+npm ci
+scripts/verify-release.sh v0.3.0 --cluster devnet   # the program onchain is the release build
+npm run verify -- all --cluster devnet              # settings, solvency, roles
+```
 
 The game runs at [thedarkseek.xyz](https://thedarkseek.xyz), with play money
-until launch.
+until staked rounds move onchain.
 
 ## $DS at launch
 
