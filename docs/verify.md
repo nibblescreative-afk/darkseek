@@ -97,6 +97,13 @@ rounded down at each step. None of these can change without a program
 upgrade, except the game server key (`set_authority`, an event in the
 program's history).
 
+Once $DS is recorded it also checks the auction settings against the bounds
+release v0.4.0 enforces (a floor of at least a thousandth of the genesis price,
+a descent of one hour to seven days, a lot of at most 100,000 USDC, a first
+target of at most 1,000,000 USDC). Before that it notes any fee waiting in the
+staker, rebate or buyback pool: from v0.4.0 the whole fee goes to the treasury
+until $DS is recorded, so anything there came in earlier.
+
 ## 4. $DS has a fixed supply; characters are one of one
 
 ```sh

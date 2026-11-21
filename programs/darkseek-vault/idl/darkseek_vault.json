@@ -2,7 +2,7 @@
   "address": "DarkHJqM8GMmCu7BWko6HMG4YgJgZ7jeEr2Qe967e5sE",
   "metadata": {
     "name": "darkseek_vault",
-    "version": "0.3.0",
+    "version": "0.4.0",
     "spec": "0.1.0",
     "description": "DarkSeek vault program: player vaults, room escrow and settlement, the fee split, $DS staking, buyback and vesting",
     "repository": "https://github.com/nibblescreative-afk/darkseek"
@@ -1014,6 +1014,70 @@
       ]
     },
     {
+      "name": "leave_seat",
+      "docs": [
+        "A seated player leaves an open lobby on their own, with their whole stake,",
+        "once the lobby has been forming for `LEAVE_AFTER_SECS`. While they stay",
+        "seated the room is never empty, so no lock or unlock restarts that clock;",
+        "only their session lets the game server seat them again in a fresh lobby."
+      ],
+      "discriminator": [
+        108,
+        242,
+        177,
+        6,
+        45,
+        227,
+        145,
+        142
+      ],
+      "accounts": [
+        {
+          "name": "owner",
+          "signer": true,
+          "relations": [
+            "vault"
+          ]
+        },
+        {
+          "name": "vault",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "owner"
+              }
+            ]
+          }
+        },
+        {
+          "name": "room",
+          "writable": true
+        }
+      ],
+      "args": [
+        {
+          "name": "round",
+          "type": "u64"
+        },
+        {
+          "name": "slot",
+          "type": "u8"
+        }
+      ]
+    },
+    {
       "name": "lock_stake",
       "docs": [
         "Puts the stake for `slot` (0 and 1 Seekers, 2 to 9 Hiders) into the room.",
@@ -1280,7 +1344,8 @@
         "the pool holds the whole target and spends exactly the target. $DS bought",
         "for the buyback is burned here and now; $DS bought for rebates joins the",
         "reserve. When a round's budget is spent, the next target is 98% of this",
-        "one. The price then restarts at 1.5 times this fill."
+        "one. The price then restarts at 1.5 times this fill, or 3 times when this",
+        "fill came within ten minutes of the one before."
       ],
       "discriminator": [
         217,
@@ -1626,7 +1691,7 @@
       "name": "start_round",
       "docs": [
         "All ten seats are staked: the round goes live, the fee is taken seat by",
-        "seat and split by the fixed shares."
+        "seat and split by the fixed shares (all of it to the treasury until $DS is recorded)."
       ],
       "discriminator": [
         144,
@@ -2390,6 +2455,19 @@
       ]
     },
     {
+      "name": "SeatLeft",
+      "discriminator": [
+        25,
+        78,
+        159,
+        147,
+        156,
+        96,
+        173,
+        201
+      ]
+    },
+    {
       "name": "SessionSet",
       "discriminator": [
         217,
@@ -2614,6 +2692,11 @@
       "code": 6023,
       "name": "MintExtensionNotAllowed",
       "msg": "This mint has an extension that could take, freeze, tax or block tokens"
+    },
+    {
+      "code": 6024,
+      "name": "TooEarly",
+      "msg": "Too early: this lobby has not been forming long enough for a player to leave on their own"
     }
   ],
   "types": [
@@ -2662,7 +2745,9 @@
           {
             "name": "last_price",
             "docs": [
-              "price of the last fill (the genesis price until the first fill)"
+              "the price the next descent restarts from, divided by 1.5: the last fill's price,",
+              "doubled when that fill came within `QUICK_REFILL_SECS` of the one before",
+              "(the genesis price until the first fill)"
             ],
             "type": "u64"
           },
@@ -2968,7 +3053,8 @@
           {
             "name": "reward_carry",
             "docs": [
-              "stakers' USDC not yet in the accumulator (nobody staked, or rounding), scaled by `REWARD_SCALE`"
+              "stakers' USDC not yet in the accumulator (nobody staked, or rounding), scaled by",
+              "`REWARD_SCALE`; at most a tenth of it goes out at each round start"
             ],
             "type": "u128"
           },
@@ -3415,6 +3501,10 @@
           },
           {
             "name": "started_at",
+            "docs": [
+              "when the round started; while the room is open, when its lobby began forming",
+              "(the first seat taken in an empty room), which only emptying the room resets"
+            ],
             "type": "i64"
           },
           {
@@ -3623,6 +3713,37 @@
       "type": {
         "kind": "struct",
         "fields": [
+          {
+            "name": "owner",
+            "type": "pubkey"
+          },
+          {
+            "name": "stake",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "SeatLeft",
+      "docs": [
+        "A seated player left an open lobby on their own, with their whole stake."
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "room",
+            "type": "u8"
+          },
+          {
+            "name": "round",
+            "type": "u64"
+          },
+          {
+            "name": "slot",
+            "type": "u8"
+          },
           {
             "name": "owner",
             "type": "pubkey"

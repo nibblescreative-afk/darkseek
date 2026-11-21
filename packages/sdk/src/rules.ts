@@ -2,7 +2,22 @@
 // (programs/darkseek-vault/src/rules.rs). Tests run both against the same
 // numbers, and the validator tests compare them with what the chain did.
 
-import { AUCTION_RESTART_BPS, BPS, BUYBACK_TARGET_DECAY_BPS, HIDER_SEATS, REWARD_SCALE, SEATS, SEEKER_SEATS, SURVIVED } from './constants.js';
+import {
+  AUCTION_RESTART_BPS,
+  BPS,
+  BUYBACK_TARGET_DECAY_BPS,
+  CARRY_RELEASE_DIV,
+  HIDER_SEATS,
+  MAX_AUCTION_SECS,
+  MAX_BUYBACK_TARGET_USDC,
+  MAX_GENESIS_OVER_FLOOR,
+  MAX_LOT_USDC,
+  MIN_AUCTION_SECS,
+  REWARD_SCALE,
+  SEATS,
+  SEEKER_SEATS,
+  SURVIVED,
+} from './constants.js';
 import type { AuctionState, FeeSplit } from './accounts.js';
 
 const min = (a: bigint, b: bigint) => (a < b ? a : b);
@@ -17,6 +32,14 @@ export interface FeeParts {
   rebate: bigint;
   buyback: bigint;
   treasury: bigint;
+}
+
+/**
+ * The parts of a round's fee as the program takes them at the start: split four ways
+ * once $DS is recorded, all of it to the treasury before (v0.4.0 and later).
+ */
+export function feeParts(fee: bigint, split: FeeSplit, dsReady: boolean): FeeParts {
+  return dsReady ? splitFee(fee, split) : { stakers: 0n, rebate: 0n, buyback: 0n, treasury: fee };
 }
 
 /** The four parts of a fee; the treasury takes the rounding remainder so they add up exactly. */
@@ -88,12 +111,37 @@ export function rebateClaim(credit: bigint, dsReserve: bigint, reserveCost: bigi
 
 // ---------------------------------------------------------------------- staking
 
+/**
+ * Adds a round's USDC for stakers. With stakers, this round's amount goes out now and of
+ * what waited (nobody staked, or rounding) at most a tenth, at least one unit (v0.4.0).
+ */
 export function accrueRewards(acc: bigint, carry: bigint, totalStaked: bigint, amount: bigint): { acc: bigint; carry: bigint } {
-  const pending = carry + amount * REWARD_SCALE;
-  if (totalStaked === 0n) return { acc, carry: pending };
+  const fresh = amount * REWARD_SCALE;
+  if (totalStaked === 0n) return { acc, carry: carry + fresh };
+  const release = (carry + CARRY_RELEASE_DIV - 1n) / CARRY_RELEASE_DIV;
+  const pending = fresh + release;
   const inc = pending / totalStaked;
-  return { acc: acc + inc, carry: pending - inc * totalStaked };
+  return { acc: acc + inc, carry: carry - release + (pending - inc * totalStaked) };
 }
+
+/** The auction settings init_ds accepts (v0.4.0): see the program's ds_args_ok. */
+export function dsArgsOk(a: { genesisPrice: bigint; floorPrice: bigint; duration: bigint; lot: bigint; minFill: bigint; buybackTarget: bigint }, usdcUnit: bigint): boolean {
+  return (
+    a.floorPrice > 0n &&
+    a.genesisPrice >= a.floorPrice &&
+    a.genesisPrice <= a.floorPrice * MAX_GENESIS_OVER_FLOOR &&
+    a.duration >= MIN_AUCTION_SECS &&
+    a.duration <= MAX_AUCTION_SECS &&
+    a.minFill > 0n &&
+    a.lot >= a.minFill &&
+    a.lot <= usdcUnit * MAX_LOT_USDC &&
+    a.buybackTarget > 0n &&
+    a.buybackTarget <= usdcUnit * MAX_BUYBACK_TARGET_USDC
+  );
+}
+
+/** What a fill at `price` leaves as the auction's reference: doubled when it came quickly after the one before. */
+export const nextReferencePrice = (price: bigint, quick: boolean): bigint => (quick ? min(price * 2n, U64_MAX) : price);
 
 export const earned = (staked: bigint, acc: bigint, index: bigint): bigint => (staked * (acc - index)) / REWARD_SCALE;
 

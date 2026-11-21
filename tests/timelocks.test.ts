@@ -6,8 +6,8 @@
 
 import { before, test } from 'node:test';
 import assert from 'node:assert/strict';
-import { Keypair } from '@solana/web3.js';
-import { PUBLISHED, SURVIVED, STALE_AFTER_SECS, TOKEN_2022_PROGRAM_ID, TOKEN_PROGRAM_ID, ata, auctionPrice, buybackTargetAfter, decodeVesting, ixs, pda, seatStakes, splIxs, vested } from '../packages/sdk/src/index.js';
+import { Keypair, PublicKey } from '@solana/web3.js';
+import { LEAVE_AFTER_SECS, PUBLISHED, QUICK_REFILL_SECS, SURVIVED, STALE_AFTER_SECS, TOKEN_2022_PROGRAM_ID, TOKEN_PROGRAM_ID, ata, auctionPrice, buybackTargetAfter, decodeVesting, ixs, pda, seatStakes, splIxs, vested } from '../packages/sdk/src/index.js';
 import { SvmChain } from './harness/chain.js';
 import { DEFAULT_DS_ARGS, U, World, eventOf, expectError } from './harness/world.js';
 
@@ -161,5 +161,47 @@ test('a lock works the same for a Token 2022 token, like a pump.fun mint with me
   await chain.advance(3 * 3_600);
   await claim();
   assert.equal(await w.tokens(ata(who.publicKey, mint.publicKey, TOKEN_2022_PROGRAM_ID)), p.total);
+});
+
+test('a seated player leaves a lobby on their own after 30 minutes, whatever the game server does (v0.4.0)', async () => {
+  const [p, q] = await w.players(2, 10n * U);
+  await w.seat(3, 1n, [p.publicKey], 2);
+  const leave = (who: Keypair, slot: number) => chain.send([ixs.leaveSeat(who.publicKey, 3, 1n, slot)], [w.admin, who]);
+  await expectError(leave(p, 2), 'TooEarly');
+  // the game server keeps locking and unlocking another seat: the lobby's clock does not restart
+  await chain.advance(LEAVE_AFTER_SECS - 120);
+  await w.seat(3, 1n, [q.publicKey], 3);
+  await chain.send([ixs.unlockStake(w.authority.publicKey, 3, q.publicKey, 1n, 3)], [w.authority]);
+  await expectError(leave(p, 2), 'TooEarly');
+  await chain.advance(121);
+  // nobody leaves a seat that is not theirs
+  await expectError(leave(q, 2), 'BadSlot');
+  const before = await w.vault(p.publicKey);
+  const left = eventOf(await leave(p, 2), 'SeatLeft');
+  assert.equal(left.stake, U / 2n, 'the whole casual Hider stake');
+  const after = await w.vault(p.publicKey);
+  assert.equal(after.balance, before.balance + U / 2n);
+  assert.equal(after.locked, before.locked - U / 2n);
+  assert.ok((await w.room(3)).seats.every((s) => s.owner.equals(PublicKey.default)));
+  await w.assertBooks('leave a lobby');
+});
+
+test('a fill right after another restarts the price at 3 times, not 1.5 (v0.4.0)', async () => {
+  const ten = await w.players(10, 50n * U);
+  await w.play(6, 1n, keys(ten), [S, S, S, S, S, S, S, S]); // a pro round: 0.70 USDC into the rebate pool
+  const seller = await w.player(1n * U, { ds: 1_000n * U });
+  const sell = (maxDs: bigint) => chain.send([ixs.sellDs(seller.publicKey, w.usdc, w.ds, maxDs, 0n)], [w.admin, seller]);
+  // the last fill was hours ago: an ordinary restart at 1.5 times
+  await chain.advance(QUICK_REFILL_SECS + 1);
+  const a = eventOf(await sell(U / 2n), 'Buyback');
+  let c = await w.config();
+  assert.equal(c.auction.lastPrice, a.price);
+  // a second fill within ten minutes: the next descent starts at 3 times its price
+  await chain.advance(60);
+  const b = eventOf(await sell(U / 2n), 'Buyback');
+  c = await w.config();
+  assert.equal(c.auction.lastPrice, (b.price as bigint) * 2n);
+  assert.equal(auctionPrice(c.auction, await chain.now()), (b.price as bigint) * 3n);
+  await w.assertBooks('quick refill');
 });
 

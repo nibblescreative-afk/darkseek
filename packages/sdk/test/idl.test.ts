@@ -95,6 +95,7 @@ test('instructions: discriminators, arguments and every account flag', () => {
     pay: b.pay(k(), k(), 1n),
     lock_stake: b.lockStake(k(), 1, k(), 1n, 0),
     unlock_stake: b.unlockStake(k(), 1, k(), 1n, 0),
+    leave_seat: b.leaveSeat(k(), 1, 1n, 0),
     start_round: b.startRound(k(), 1, 1n),
     settle_round: b.settleRound(k(), 1, 1n, [0, 0, 0, 0, 0, 0, 0, 0], []),
     cancel_round: b.cancelRound(k(), 1, 1n, []),

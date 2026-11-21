@@ -9,7 +9,7 @@ import { bytesToHex } from '@noble/hashes/utils';
 import { ACCOUNT_DISCRIMINATORS, ACCOUNT_SIZES, decodeConfig, decodeRoom, decodeVault, type ConfigAccount, type RoomAccount, type VaultAccount } from './accounts.js';
 import { BPF_LOADER_UPGRADEABLE_ID, DS_DECIMALS, DS_TOTAL_SUPPLY, PROGRAM_ID, PUBLISHED, ROOMS, STATUS, TOKEN_2022_PROGRAM_ID, TOKEN_PROGRAM_ID } from './constants.js';
 import { pda } from './pda.js';
-import { buybackTargetAfter, earned } from './rules.js';
+import { buybackTargetAfter, dsArgsOk, earned } from './rules.js';
 import { EXT, EXT_NAME, decodeMetadataPointer, decodeMint, decodeTokenAccount, decodeTokenMetadata } from './spl.js';
 
 export interface Check {
@@ -185,6 +185,23 @@ export function configChecks(c: ConfigAccount, expected: ExpectedSettings = {}):
       const half = (expected.launchBuyUsdc * BigInt(PUBLISHED.buybackTargetShareBps)) / 10_000n;
       checks.push({ name: 'first buyback target is half the launch buy', ok: c.buybackTargetInitial === half, detail: `${c.buybackTargetInitial}, half of ${expected.launchBuyUsdc} is ${half}` });
     }
+    // the bounds release v0.4.0 puts on init_ds (a deployment recorded before it is held to them here)
+    const a = c.auction;
+    const unit = 10n ** BigInt(c.decimals);
+    const filled = c.totals.buybackSpent > 0n || c.totals.rebateSpent > 0n;
+    const bounded = dsArgsOk(
+      { genesisPrice: filled ? a.floorPrice : a.lastPrice, floorPrice: a.floorPrice, duration: a.duration, lot: a.lot, minFill: a.minFill, buybackTarget: c.buybackTargetInitial },
+      unit,
+    );
+    checks.push({
+      name: 'auction settings are within the bounds: floor at least a thousandth of the genesis price, a descent of 1 hour to 7 days, a lot of at most 100,000 USDC, a first target of at most 1,000,000 USDC',
+      ok: bounded,
+      detail: `floor ${a.floorPrice}${filled ? '' : `, genesis ${a.lastPrice}`}, ${a.duration} s, lot ${a.lot}, min fill ${a.minFill}, first target ${c.buybackTargetInitial}`,
+    });
+  } else {
+    // from v0.4.0 the whole fee goes to the treasury until $DS is recorded; anything here came in earlier
+    const waiting = c.stakerPool + c.rebatePool + c.buybackPool;
+    checks.push({ name: 'no fee waits in the staker, rebate or buyback pool before $DS is recorded', ok: waiting === 0n, warn: true, detail: `staker ${c.stakerPool}, rebate ${c.rebatePool}, buyback ${c.buybackPool}` });
   }
   if (expected.admin) checks.push({ name: 'admin is the published key', ok: c.admin.equals(expected.admin), detail: c.admin.toBase58() });
   if (expected.authority) checks.push({ name: 'game server key is the published one', ok: c.authority.equals(expected.authority), detail: c.authority.toBase58() });

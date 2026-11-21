@@ -20,7 +20,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { Keypair, type PublicKey, type TransactionInstruction } from '@solana/web3.js';
-import { STALE_AFTER_SECS, STATUS, SURVIVED, ata, ixs, payoutsFor, splIxs, type RoomAccount, type SolvencyReport } from '../packages/sdk/src/index.js';
+import { STALE_AFTER_SECS, STATUS, SURVIVED, ata, ixs, payoutsFor, splIxs, type RoomAccount, type SolvencyReport, LEAVE_AFTER_SECS } from '../packages/sdk/src/index.js';
 import { SvmChain } from './harness/chain.js';
 import { DEFAULT_DS_ARGS, U, World, type DsProgram } from './harness/world.js';
 
@@ -152,11 +152,35 @@ class Fuzz {
     if (room.status === STATUS.OPEN && seated.length > 0) {
       const roll = this.r.int(100);
       if (roll < 8) return this.leave(index, room);
-      if (roll < 11) return this.cancel(index, room);
-      if (roll < 13) return this.abandon(index, room);
-      if (roll < 15) return this.start(index, room); // not full: must be refused
+      if (roll < 12) return this.ownerLeaves(index, room);
+      if (roll < 15) return this.cancel(index, room);
+      if (roll < 17) return this.abandon(index, room);
+      if (roll < 19) return this.start(index, room); // not full: must be refused
     }
+    if (this.r.chance(0.03)) return this.skipRound(index, room); // must be refused
     return this.seat(index, room);
+  }
+
+  /** The seat's owner leaves on their own: refused until the lobby has formed for 30 minutes (v0.4.0). */
+  async ownerLeaves(index: number, room: RoomAccount): Promise<Step> {
+    const slot = this.r.pick([...room.seats.keys()].filter((i) => !isEmpty(room.seats[i].owner)));
+    const owner = this.players.find((p) => p.publicKey.equals(room.seats[slot].owner));
+    if (!owner) return { name: 'owner leaves (not ours)', run: async () => undefined };
+    const wait = this.r.chance(0.6) && this.clockMoved + LEAVE_AFTER_SECS + 60 <= MAX_CLOCK_MOVE;
+    return {
+      name: wait ? 'owner leaves' : 'owner leaves (no wait)',
+      run: async () => {
+        if (wait) await this.move(LEAVE_AFTER_SECS + 60);
+        return this.send([ixs.leaveSeat(owner.publicKey, index, room.round, slot)], owner);
+      },
+    };
+  }
+
+  /** A round number past the next one: always refused, so no room can be pushed out of rounds (v0.4.0). */
+  skipRound(index: number, room: RoomAccount): Step {
+    const round = room.round + 2n + BigInt(this.r.int(1_000));
+    const who = this.r.pick(this.players);
+    return { name: 'skip a round', run: () => this.chain.send([ixs.lockStake(this.w.authority.publicKey, index, who.publicKey, round, this.r.int(10))], [this.w.authority]) };
   }
 
   async seat(index: number, room: RoomAccount): Promise<Step> {

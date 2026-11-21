@@ -193,11 +193,11 @@ export class Store {
       : this.all('SELECT * FROM rounds WHERE room = ? ORDER BY round DESC LIMIT ?', room, limit);
   }
 
-  /** Stakes locked for a round, by slot (StakeLocked events), for rounds that never started. */
+  /** Stakes locked for a round, by slot (StakeLocked events), and given back (StakeUnlocked, or SeatLeft when the owner left on their own), for rounds that never started. */
   stakesOf(room: number, round: bigint): Row[] {
     return this.all(
       `SELECT name, signature, json_extract(data, '$.slot') AS slot, json_extract(data, '$.owner') AS owner, json_extract(data, '$.stake') AS stake
-       FROM events WHERE name IN ('StakeLocked', 'StakeUnlocked') AND json_extract(data, '$.room') = ? AND json_extract(data, '$.round') = ?
+       FROM events WHERE name IN ('StakeLocked', 'StakeUnlocked', 'SeatLeft') AND json_extract(data, '$.room') = ? AND json_extract(data, '$.round') = ?
        ORDER BY slot, rowid`,
       room,
       round.toString(),

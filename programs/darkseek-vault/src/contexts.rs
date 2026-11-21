@@ -168,6 +168,16 @@ pub struct LockStake<'info> {
     pub vault: Account<'info, Vault>,
 }
 
+/// A seated player leaving an open lobby on their own (no game server involved).
+#[derive(Accounts)]
+pub struct LeaveSeat<'info> {
+    pub owner: Signer<'info>,
+    #[account(mut, seeds = [b"vault", owner.key().as_ref()], bump = vault.bump, has_one = owner)]
+    pub vault: Account<'info, Vault>,
+    #[account(mut, seeds = [b"room".as_ref(), &[room.index]], bump = room.bump)]
+    pub room: Account<'info, Room>,
+}
+
 #[derive(Accounts)]
 pub struct RoomOp<'info> {
     pub authority: Signer<'info>,

@@ -25,6 +25,7 @@ export const VAULT_ERRORS = [
   'PriceMoved',
   'NothingToClaim',
   'MintExtensionNotAllowed',
+  'TooEarly',
 ] as const;
 
 export type VaultErrorName = (typeof VAULT_ERRORS)[number];

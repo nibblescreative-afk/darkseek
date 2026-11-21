@@ -79,3 +79,14 @@ jobs:
         run: npx tsx --test tests/token.test.ts
       - name: The indexer on a local validator
         run: npm test -w @darkseek/indexer
+      - name: An upgrade in place from the latest release, in LiteSVM
+        env:
+          PREVIOUS_RELEASE: v0.3.0
+        run: |
+          prev="$RUNNER_TEMP/previous-release"
+          mkdir -p "$prev"
+          base="https://github.com/nibblescreative-afk/darkseek/releases/download/$PREVIOUS_RELEASE"
+          curl -fsSL -o "$prev/darkseek_vault.so" "$base/darkseek_vault.so"
+          curl -fsSL -o "$prev/SHA256SUMS" "$base/SHA256SUMS"
+          (cd "$prev" && grep ' darkseek_vault.so$' SHA256SUMS | sha256sum -c -)
+          DS_PREVIOUS_SO="$prev/darkseek_vault.so" npx tsx --test tests/upgrade.test.ts

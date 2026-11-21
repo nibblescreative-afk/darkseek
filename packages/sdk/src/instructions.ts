@@ -113,6 +113,10 @@ export class VaultInstructions {
   unlockStake(authority: PublicKey, room: number, owner: PublicKey, round: bigint, slot: number) {
     return this.ix('unlock_stake', [r(authority, true), r(this.config), w(this.room(room)), w(this.vault(owner))], { round, slot });
   }
+  /** The seat's owner leaves an open lobby on their own, once it has formed for LEAVE_AFTER_SECS (v0.4.0). */
+  leaveSeat(owner: PublicKey, room: number, round: bigint, slot: number) {
+    return this.ix('leave_seat', [r(owner, true), w(this.vault(owner)), w(this.room(room))], { round, slot });
+  }
   startRound(authority: PublicKey, room: number, round: bigint) {
     return this.ix('start_round', [r(authority, true), w(this.config), w(this.room(room))], { round });
   }

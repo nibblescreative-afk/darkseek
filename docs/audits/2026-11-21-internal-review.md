@@ -33,11 +33,11 @@ balance.
 
 | # | Severity | Finding | Status |
 |---|---|---|---|
-| 1 | Medium | Before `init_ds`, the admin can reach the staker, rebate and buyback pools | fix planned in v0.4.0; disclosed |
-| 2 | Medium | The game server key can switch rooms off for good | fix planned in v0.4.0; disclosed |
-| 3 | Low | A dishonest game server can hold a lobby's stakes | fix planned in v0.4.0; disclosed |
-| 4 | Low | Back to back auction fills can overpay after a price drop | fix planned in v0.4.0; disclosed |
-| 5 | Low | The stakers' carry goes to whoever is staked at the next start | fix planned in v0.4.0; disclosed |
+| 1 | Medium | Before `init_ds`, the admin can reach the staker, rebate and buyback pools | fixed in v0.4.0 (not yet deployed) |
+| 2 | Medium | The game server key can switch rooms off for good | fixed in v0.4.0 (not yet deployed) |
+| 3 | Low | A dishonest game server can hold a lobby's stakes | fixed in v0.4.0 (not yet deployed) |
+| 4 | Low | Back to back auction fills can overpay after a price drop | reduced in v0.4.0 (not yet deployed) |
+| 5 | Low | The stakers' carry goes to whoever is staked at the next start | fixed in v0.4.0 (not yet deployed) |
 | 6 | Low | The session's daily cap is per UTC day | documented |
 | 7 | Info | That the house never plays cannot be enforced onchain | documented |
 | 8 | Info | Unlocks do not give back the daily cap | noted |
@@ -161,3 +161,39 @@ a possible change.
 - Whether the planned multisig's timelock also covers the admin instructions
   (`set_authority`, `init_ds`, `sweep_treasury`), not only upgrades: the program
   has no delay of its own.
+
+## What v0.4.0 does about it
+
+- **1.** Until `init_ds` records $DS, `start_round` gives the whole fee to the
+  treasury (`fee_parts`), so the staker, rebate and buyback pools stay empty and
+  no choice of mint can take anything that waited. `init_ds` refuses settings
+  outside bounds (`ds_args_ok`): a floor under a thousandth of the genesis price,
+  a descent under an hour or over seven days, a lot over 100,000 USDC, a first
+  target over 1,000,000 USDC. `npm run verify -- config` checks the same bounds,
+  and warns when a deployment from before v0.4.0 holds fees in those pools.
+- **2.** `lock_stake` accepts only the next round number: a settled room moves
+  to round + 1, and an open room nobody sits in to round + 1, never further.
+- **3.** `leave_seat`: the seat's owner signs and takes the whole stake back from
+  an open lobby once it has been forming for 30 minutes. The clock is
+  `Room.started_at`, set when the first seat is taken in an empty room; locks
+  and unlocks of other seats do not restart it. To seat a player again in a
+  fresh lobby, the game server has to give the stake back and lock it anew
+  under the player's session (against its daily cap), so a player who has
+  revoked the session can leave once the lobby has been forming for 30
+  minutes, whatever the server does.
+- **4.** A fill within ten minutes of the one before records twice its price as
+  the auction's reference (`next_reference_price`), so the next descent starts
+  at 3 times that fill instead of 1.5. After a tenfold fall in the price of $DS,
+  three fills reach the market instead of six, and the pools pay roughly 40%
+  less above it. Without a price oracle this reduces the loss; it does not
+  remove it. The rule only ever makes the auction ask more $DS for each USDC,
+  so a seller who fills twice on purpose slows the buyback down at their own
+  cost; it cannot make the pools pay more.
+- **5.** `accrue_rewards` pays out this round's share and at most a tenth of what
+  waited (at least one unit while anything waits).
+- Needs confirmation 1: `open_vault` and `lock_stake` refuse the all zero key.
+
+No account changes its layout: a deployment upgrades in place and every config,
+room and vault stays readable. Error codes keep their numbers (`TooEarly` is
+added at the end); `SeatLeft` is a new event.
+

@@ -246,3 +246,13 @@ pub struct VestingClaimed {
     pub amount: u64,
     pub claimed: u64,
 }
+
+/// A seated player left an open lobby on their own, with their whole stake.
+#[event]
+pub struct SeatLeft {
+    pub room: u8,
+    pub round: u64,
+    pub slot: u8,
+    pub owner: Pubkey,
+    pub stake: u64,
+}

@@ -19,6 +19,18 @@ pub struct FeeParts {
     pub treasury: u64,
 }
 
+/// The fee's parts for a round that starts now. Until $DS is recorded there are no
+/// stakers, no $DS to buy back and nothing to pay rebates in, so the whole fee goes
+/// to the treasury and the other pools stay empty (nothing waits in them that a
+/// later `init_ds` could hand to the wrong token).
+pub fn fee_parts(fee: u64, split: &FeeSplitBps, ds_ready: bool) -> FeeParts {
+    if ds_ready {
+        split_fee(fee, split)
+    } else {
+        FeeParts { stakers: 0, rebate: 0, buyback: 0, treasury: fee }
+    }
+}
+
 /// Splits a fee four ways; the treasury takes the rounding remainder so the
 /// parts always add up to `fee`.
 pub fn split_fee(fee: u64, split: &FeeSplitBps) -> FeeParts {
@@ -93,12 +105,17 @@ pub fn rebate_claim(credit: u64, ds_reserve: u64, reserve_cost: u64) -> (u64, u6
 /// the sum of every staker's rewards can never exceed what was paid in.
 /// Returns (new accumulator, new carry).
 pub fn accrue_rewards(acc: u128, carry: u128, total_staked: u64, amount: u64) -> Result<(u128, u128)> {
-    let pending = carry.checked_add(amount as u128 * REWARD_SCALE).ok_or(VaultError::Overflow)?;
+    let fresh = (amount as u128).checked_mul(REWARD_SCALE).ok_or(VaultError::Overflow)?;
     if total_staked == 0 {
-        return Ok((acc, pending));
+        return Ok((acc, carry.checked_add(fresh).ok_or(VaultError::Overflow)?));
     }
+    // this round's share goes to today's stakers; of what waited, at most a tenth (and at least
+    // one unit while anything waits), so nobody who stakes just before a round takes all of it
+    let release = carry.div_ceil(CARRY_RELEASE_DIV);
+    let pending = fresh.checked_add(release).ok_or(VaultError::Overflow)?;
     let inc = pending / total_staked as u128;
-    Ok((acc.checked_add(inc).ok_or(VaultError::Overflow)?, pending - inc * total_staked as u128))
+    let kept = (carry - release).checked_add(pending - inc * total_staked as u128).ok_or(VaultError::Overflow)?;
+    Ok((acc.checked_add(inc).ok_or(VaultError::Overflow)?, kept))
 }
 
 /// Rewards a stake earned since its last sync.
@@ -106,6 +123,34 @@ pub fn earned(staked: u64, acc: u128, index: u128) -> Result<u64> {
     let delta = acc.checked_sub(index).ok_or(VaultError::Overflow)?;
     let v = (staked as u128).checked_mul(delta).ok_or(VaultError::Overflow)? / REWARD_SCALE;
     u64::try_from(v).map_err(|_| error!(VaultError::Overflow))
+}
+
+/// The auction settings `init_ds` accepts: a floor above zero and at least a
+/// thousandth of the genesis price, a descent of one hour to seven days, a minimum
+/// fill above zero and at most the lot, a lot of at most 100 000 USDC, and a first
+/// buyback target above zero and at most 1 000 000 USDC.
+pub fn ds_args_ok(a: &crate::DsArgs, usdc_unit: u64) -> bool {
+    let unit = usdc_unit as u128;
+    a.floor_price > 0
+        && a.genesis_price >= a.floor_price
+        && a.genesis_price as u128 <= a.floor_price as u128 * MAX_GENESIS_OVER_FLOOR as u128
+        && (MIN_AUCTION_SECS..=MAX_AUCTION_SECS).contains(&a.duration)
+        && a.min_fill > 0
+        && a.lot >= a.min_fill
+        && a.lot as u128 <= unit * MAX_LOT_USDC as u128
+        && a.buyback_target > 0
+        && a.buyback_target as u128 <= unit * MAX_BUYBACK_TARGET_USDC as u128
+}
+
+/// The price the next descent restarts from (divided by 1.5) after a fill at `price`:
+/// a fill that follows the one before within `QUICK_REFILL_SECS` counts double, so a
+/// burst of fills after a fall in the price of $DS lifts the price out of the way fast.
+pub fn next_reference_price(price: u64, quick: bool) -> u64 {
+    if quick {
+        price.saturating_mul(2)
+    } else {
+        price
+    }
 }
 
 // ---------------------------------------------------------------------- buyback
@@ -407,4 +452,69 @@ mod tests {
         assert_eq!(vested(1_000, start, cliff, end, 400), 1_000);
         assert_eq!(vested(1_000, start, cliff, end, 9_999), 1_000);
     }
+
+    // ------------------------------------------------------------------ v0.4.0
+
+    #[test]
+    fn what_waited_goes_out_a_tenth_at_a_time() {
+        // 70 USDC waited while nobody staked; then one base unit of $DS is staked
+        let (acc, carry) = accrue_rewards(0, 0, 0, 70 * U).unwrap();
+        assert_eq!((acc, carry), (0, 70 * U as u128 * REWARD_SCALE));
+        let (acc1, carry1) = accrue_rewards(acc, carry, 1, 70_000).unwrap();
+        // this round's 0.07 USDC and a tenth of what waited, not all of it
+        assert_eq!(acc1, (70_000 + 7 * U) as u128 * REWARD_SCALE);
+        assert_eq!(carry1, 63 * U as u128 * REWARD_SCALE);
+        // nothing is lost: what went out plus what still waits is everything that came in
+        let (mut a, mut c) = (acc1, carry1);
+        for _ in 0..400 {
+            let (a2, c2) = accrue_rewards(a, c, 7, 1_001).unwrap();
+            assert!(c2 <= c + 1_001 * REWARD_SCALE);
+            (a, c) = (a2, c2);
+        }
+        let out = a * 7 + c; // a is per staked unit; 7 units staked after the first round
+        let paid_in = (70 * U + 70_000 + 400 * 1_001) as u128 * REWARD_SCALE;
+        assert_eq!(out - (acc1 * 7 - acc1 * 1), paid_in, "every scaled unit is either in the accumulator or still waiting");
+        assert!(c < REWARD_SCALE * 1_001, "what waited has gone out after a few hundred rounds");
+    }
+
+    #[test]
+    fn before_ds_the_whole_fee_is_the_treasury_s() {
+        assert_eq!(fee_parts(700_000, &SPLIT, false), FeeParts { stakers: 0, rebate: 0, buyback: 0, treasury: 700_000 });
+        assert_eq!(fee_parts(700_000, &SPLIT, true), split_fee(700_000, &SPLIT));
+    }
+
+    #[test]
+    fn init_ds_settings_are_bounded() {
+        let ok = crate::DsArgs { genesis_price: 300_000 * U, floor_price: 300 * U, duration: 6 * 3_600, lot: 1_000 * U, min_fill: U, buyback_target: 50 * U };
+        assert!(ds_args_ok(&ok, U));
+        let bad = [
+            crate::DsArgs { floor_price: 0, ..ok },
+            crate::DsArgs { genesis_price: ok.floor_price - 1, ..ok },
+            crate::DsArgs { genesis_price: ok.floor_price * 1_000 + 1, ..ok },
+            crate::DsArgs { duration: 1, ..ok },
+            crate::DsArgs { duration: 3_599, ..ok },
+            crate::DsArgs { duration: 7 * DAY + 1, ..ok },
+            crate::DsArgs { min_fill: 0, ..ok },
+            crate::DsArgs { min_fill: ok.lot + 1, ..ok },
+            crate::DsArgs { lot: 100_000 * U + 1, min_fill: U, ..ok },
+            crate::DsArgs { buyback_target: 0, ..ok },
+            crate::DsArgs { buyback_target: 1_000_000 * U + 1, ..ok },
+        ];
+        for (i, a) in bad.iter().enumerate() {
+            assert!(!ds_args_ok(a, U), "case {i} should be refused");
+        }
+        // the edges themselves are accepted
+        assert!(ds_args_ok(&crate::DsArgs { genesis_price: ok.floor_price * 1_000, duration: 3_600, lot: 100_000 * U, buyback_target: 1_000_000 * U, ..ok }, U));
+        assert!(ds_args_ok(&crate::DsArgs { duration: 7 * DAY, ..ok }, U));
+    }
+
+    #[test]
+    fn a_quick_refill_restarts_twice_as_far_up() {
+        let a = Auction { last_price: next_reference_price(300, false), started_at: 0, floor_price: 1, duration: 3_600, lot: 1, min_fill: 1 };
+        assert_eq!(auction_price(&a, 0), 450, "1.5 times a fill after a quiet spell");
+        let q = Auction { last_price: next_reference_price(300, true), ..a };
+        assert_eq!(auction_price(&q, 0), 900, "3 times a fill that came right after another");
+        assert_eq!(next_reference_price(u64::MAX, true), u64::MAX);
+    }
 }
+

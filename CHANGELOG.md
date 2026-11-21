@@ -1,24 +1,86 @@
 # Changelog
 
-## Unreleased
+## 0.4.0 (unreleased)
 
-- Testnet: release v0.3.0 deployed on Solana testnet at the same program id
-  and addresses as on devnet (docs/deployments.md), with a test only token
-  shaped like a pump.fun mint recorded by `init_ds`, so the $DS settings are
-  checked onchain too. The game runs there now. Test money only.
+The program changes for every finding of the internal review of v0.3.0
+(docs/audits/2026-11-21-internal-review.md), with what came after v0.3.0: the
+testnet deployment and the signed round results. No account layout changes, so
+a deployment upgrades in place.
+
+### Program
+
+- Until $DS is recorded the whole fee goes to the treasury; the staker, rebate
+  and buyback pools fill from the round after `init_ds`.
+- `init_ds` refuses auction settings outside bounds: a floor under a thousandth
+  of the genesis price, a descent under an hour or over seven days, a lot over
+  100,000 USDC, a first target over 1,000,000 USDC.
+- `lock_stake` takes only the next round number.
+- `leave_seat`: a seated player leaves an open lobby on their own, with the whole
+  stake, once it has been forming for 30 minutes. New event `SeatLeft`, new error
+  `TooEarly` (6024, added last; every other code keeps its number).
+- A fill within ten minutes of the one before restarts the auction at 3 times
+  its price instead of 1.5.
+- Of the stakers' USDC that waited, at most a tenth goes out at each round start.
+- No vault for the all zero key.
+
+### SDK, verifier, indexer and tests
+
+- SDK: `leaveSeat`, `feeParts`, `dsArgsOk`, `nextReferencePrice`, the new
+  constants; `accrueRewards` follows the program. `npm run verify -- config`
+  checks the auction bounds, and warns about fees that waited in the pools
+  before $DS was recorded. The indexer lists `SeatLeft` with a round's stake
+  events. `scripts/setup-cluster.ts` rounds the default floor up.
 - Signed round results: `darkseek-verify rounds --site <game>` checks every
   round result the game publishes: its signature (a Solana off-chain message
   from the program's game server key), the fair deal (the revealed seed against
   its commit, every spawn and role dealt again), the outcome against the
   captures, and the settle transaction onchain. docs/fairness.md specifies the
   deal and the record.
-- An internal review of v0.3.0, with the limits it found and the fixes planned
-  for v0.4.0: docs/audits/2026-11-21-internal-review.md and
-  docs/security-model.md.
 - SDK: `testnet` is a known cluster. `DEPLOYMENTS.testnet` is that
   deployment, `darkseek-verify --cluster testnet` uses the public testnet RPC,
   and Solscan links carry `?cluster=testnet`. The scripts recognise the
   testnet genesis hash.
+- Tests: the new rules on a local validator and in LiteSVM, round numbers one by
+  one in every room, and the fuzzer also tries owners leaving and skipped round
+  numbers. `tests/upgrade.test.ts` upgrades a deployment running the v0.3.0
+  release build in place, with $DS recorded and without, and plays on; the
+  Validator workflow runs it against the latest release.
+
+### Deployments and docs
+
+- Testnet: release v0.3.0 deployed on Solana testnet at the same program id
+  and addresses as on devnet (docs/deployments.md), with a test only token
+  shaped like a pump.fun mint recorded by `init_ds`, so the $DS settings are
+  checked onchain too. The game runs there now. Test money only.
+- An internal review of v0.3.0, with the limits it found and the fixes this
+  release makes: docs/audits/2026-11-21-internal-review.md and
+  docs/security-model.md.
+
+### What the game server has to change
+
+- Nothing, for rounds to keep working: it already locks only the next round
+  number of a room, and its round start reads the seats onchain and gives every
+  stake back when one is missing.
+- A seat can now empty without the game server: `leave_seat` emits `SeatLeft`.
+  Treat it as that player leaving the lobby; an `unlock_stake` for that seat
+  then fails with `BadSlot`.
+- It may offer `leave_seat` to a player whose lobby has been forming for 30
+  minutes (`leaveSeat` in the SDK; the player signs as the vault owner, and the
+  game may pay the network fee). `TooEarly` means the 30 minutes are not up.
+- Use `@darkseek/sdk` 0.4.0, so `TooEarly` maps by name and the rules
+  (`feeParts`, `accrueRewards`, `nextReferencePrice`) match the program.
+- Until $DS is recorded, show the whole fee as going to the treasury.
+
+### Upgrading a deployment
+
+- Upgrade with the release's `darkseek_vault.so` and the upgrade authority.
+  Every config, room and vault stays readable, and every error keeps its code.
+- A lobby that is forming at the moment of the upgrade has a clock from before
+  v0.4.0, already older than 30 minutes, so its players can leave it at once.
+  Upgrade while no lobby is forming, or expect that (the round start then gives
+  every stake back).
+- Fees that waited in the staker, rebate or buyback pool before v0.4.0 stay
+  there; `npm run verify -- config` warns about them.
 
 ## 0.3.0 (2026-11-20)
 

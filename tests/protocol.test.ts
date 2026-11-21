@@ -46,7 +46,12 @@ let chain: ValidatorChain;
 let w: World;
 let ten: Keypair[];
 const keys = (ks: Keypair[]) => ks.map((k) => k.publicKey);
-let round = 10n; // rounds of the main rooms start here, after the lobby tests
+let round = 0n; // the round in play in a test's room
+/** The round a room's next seat must use, as the game picks it: the open lobby's, or the one after (never further, v0.4.0). */
+const nextRound = async (room: number): Promise<bigint> => {
+  const r = await w.room(room);
+  return r.status === 0 ? r.round : r.round + 1n;
+};
 // as if the launch buy (3% of supply) had been worth 6 USDC: the first buyback round spends 3
 const DS_ARGS = { genesisPrice: 100n * U, floorPrice: U, duration: 21_600n, lot: 1_000n * U, minFill: U / 100n, buybackTarget: 3n * U };
 
@@ -81,6 +86,28 @@ test('only the upgrade authority can initialize, and only once', async () => {
   for (let i = 1; i <= 6; i++) assert.equal((await w.room(i)).tier, i <= 3 ? 0 : 1);
 });
 
+test('until $DS is recorded the whole fee goes to the treasury and the other pools stay empty (v0.4.0)', async () => {
+  // a pro room (5): the session test below uses rooms 1 to 3 from round 1
+  const early = await w.players(10, 20n * U);
+  const before = await w.config();
+  const { started, settled } = await w.play(5, await nextRound(5), keys(early), [S, S, S, S, S, S, S, S]);
+  const ev = eventOf(started, 'RoundStarted');
+  assert.deepEqual([ev.toStakers, ev.toRebate, ev.toBuyback, ev.toTreasury], [0n, 0n, 0n, 3_500_000n]);
+  const after = await w.config();
+  assert.deepEqual(
+    [after.stakerPool, after.rebatePool, after.buybackPool, after.rebateCredits, after.rewardCarry],
+    [before.stakerPool, before.rebatePool, before.buybackPool, before.rebateCredits, before.rewardCarry],
+    'nothing waits for a $DS mint that the admin has yet to choose',
+  );
+  assert.equal(after.treasury - before.treasury, 3_500_000n);
+  assert.equal(eventOf(settled, 'RoundSettled').rebateUsdc, 0n);
+  await w.assertBooks('a round before $DS');
+});
+
+test('no vault for the all zero key, which marks empty seats (v0.4.0)', async () => {
+  await expectError(chain.send([ixs.openVault(w.admin.publicKey, PublicKey.default)], [w.admin]), 'BadParams');
+});
+
 test('$DS is recorded once, on Token 2022 like a pump.fun mint, and only if nobody can mint or freeze it', async () => {
   // a token whose mint authority still exists is refused
   const loose = Keypair.generate();
@@ -95,6 +122,13 @@ test('$DS is recorded once, on Token 2022 like a pump.fun mint, and only if nobo
   await expectError(init(stranger), 'NotAdmin');
   await expectError(init(w.admin, { ...DS_ARGS, genesisPrice: U / 2n }), 'BadParams');
   await expectError(init(w.admin, { ...DS_ARGS, buybackTarget: 0n }), 'BadParams');
+  // v0.4.0 bounds: a floor more than a thousand times under the genesis price, a descent shorter than an
+  // hour or longer than a week, a lot over 100 000 USDC or a first target over 1 000 000 USDC are refused
+  await expectError(init(w.admin, { ...DS_ARGS, floorPrice: U / 100n }), 'BadParams');
+  await expectError(init(w.admin, { ...DS_ARGS, duration: 600n }), 'BadParams');
+  await expectError(init(w.admin, { ...DS_ARGS, duration: 8n * 86_400n }), 'BadParams');
+  await expectError(init(w.admin, { ...DS_ARGS, lot: 100_001n * U }), 'BadParams');
+  await expectError(init(w.admin, { ...DS_ARGS, buybackTarget: 1_000_001n * U }), 'BadParams');
   await expectError(init(w.admin, DS_ARGS, TOKEN_PROGRAM_ID), /ConstraintMintTokenProgram|AccountOwnedByWrongProgram|IncorrectProgramId/);
   const tx = await init(w.admin);
   const ev = eventOf(tx, 'DsConfigured');
@@ -163,6 +197,7 @@ test('the game server needs a session to stake and stays within its daily cap', 
 
 test('a round starts only when all ten seats are staked by players', async () => {
   ten = await w.players(10, 200n * U);
+  round = await nextRound(1);
   await w.seat(1, round, keys(ten).slice(0, 9));
   await expectError(w.start(1, round), 'RoomNotFull');
   await w.seat(1, round, [ten[9].publicKey], 9);
@@ -221,7 +256,7 @@ test('Hiders win: Seekers keep each catch, survivors split both Seeker stakes, l
 test('Seekers win only when every Hider is caught: own stake back plus each catch', async () => {
   const outcomes = [0, 0, 0, 0, 0, 0, 1, 1];
   const before = await Promise.all(ten.map((p) => w.vault(p.publicKey)));
-  const { settled } = await w.play(4, round, keys(ten), outcomes);
+  const { settled } = await w.play(4, await nextRound(4), keys(ten), outcomes);
   const payouts = payoutsFor(PUBLISHED.stakes, PUBLISHED.feeBps, 1, outcomes);
   assert.equal(payouts[0], 6_750_000n + 6n * 2_250_000n);
   assert.equal(payouts[1], 6_750_000n + 2n * 2_250_000n);
@@ -238,7 +273,7 @@ test('Seekers win only when every Hider is caught: own stake back plus each catc
 });
 
 test('the game server cannot pay anyone who is not seated, nor more than the room holds', async () => {
-  round++;
+  round = await nextRound(2);
   await w.seat(2, round, keys(ten));
   await w.start(2, round);
   const outsider = await w.player(10n * U);
@@ -259,8 +294,22 @@ test('the game server cannot pay anyone who is not seated, nor more than the roo
   await w.assertBooks('settle checks');
 });
 
+test('a room only ever moves on to the next round number (v0.4.0)', async () => {
+  const settled = (await w.room(2)).round;
+  // a higher number would leave the room with no round after it
+  await expectError(w.seat(2, settled + 2n, [ten[0].publicKey]), 'WrongRound');
+  await expectError(w.seat(2, (1n << 64n) - 1n, [ten[0].publicKey]), 'WrongRound');
+  await w.seat(2, settled + 1n, [ten[0].publicKey]);
+  // an open lobby takes only its own round, and the next one only once it is empty
+  await expectError(w.seat(2, settled + 2n, [ten[1].publicKey], 1), 'WrongRound');
+  await chain.send([ixs.unlockStake(w.authority.publicKey, 2, ten[0].publicKey, settled + 1n, 0)], [w.authority]);
+  await w.seat(2, settled + 2n, [ten[0].publicKey]);
+  await chain.send([ixs.unlockStake(w.authority.publicKey, 2, ten[0].publicKey, settled + 2n, 0)], [w.authority]);
+  await w.assertBooks('round numbers');
+});
+
 test('cancelling returns stakes: in full before the start, less the fee after it', async () => {
-  round++;
+  round = await nextRound(3);
   const three = keys(ten).slice(0, 3);
   const before = await Promise.all(three.map((k) => w.vault(k)));
   await w.seat(3, round, three);
@@ -269,9 +318,10 @@ test('cancelling returns stakes: in full before the start, less the fee after it
   for (let i = 0; i < 3; i++) assert.equal((await w.vault(three[i])).balance, before[i].balance);
 
   const all = await Promise.all(ten.map((p) => w.vault(p.publicKey)));
-  await w.seat(5, round, keys(ten));
-  await w.start(5, round);
-  const live = await chain.send([ixs.cancelRound(w.authority.publicKey, 5, round, keys(ten))], [w.authority]);
+  const r5 = await nextRound(5);
+  await w.seat(5, r5, keys(ten));
+  await w.start(5, r5);
+  const live = await chain.send([ixs.cancelRound(w.authority.publicKey, 5, r5, keys(ten))], [w.authority]);
   const ev = eventOf(live, 'RoundRefunded');
   assert.equal(ev.afterStart, true);
   assert.equal(ev.rebateUsdc, 70_000n, 'every seat lost the fee, so all ten share the rebate');
@@ -314,7 +364,7 @@ test('$DS stakers share 10% of every fee (1% of every stake) in USDC, pro rata t
   const c0 = await w.config();
   assert.equal(c0.dsStaked, 400n * U);
 
-  round++;
+  round = await nextRound(6);
   await w.play(6, round, keys(ten), [0, 1, S, S, S, S, S, S]);
   // the pro round's 0.35 USDC for stakers, plus what waited while nobody staked
   const { acc, carry } = accrueRewards(c0.rewardPerDs, c0.rewardCarry, c0.dsStaked, 350_000n);
@@ -383,7 +433,7 @@ test('a seller sets the least USDC they accept; dust fills are refused', async (
 });
 
 test('a buyback round spends exactly the target, burns what it buys in the same instruction, then the target drops 2%', async () => {
-  round++;
+  round = await nextRound(6);
   await w.play(6, round, keys(ten), [S, S, S, S, S, S, S, S]);
   const seller = await w.player(1n * U, { ds: 10_000n * U });
   const c = await w.config();
@@ -462,7 +512,7 @@ test('the admin role moves in two steps; the game server key can be replaced', a
 
   const newServer = Keypair.generate();
   await chain.send([ixs.setAuthority(next.publicKey, newServer.publicKey)], [next]);
-  round++;
+  round = await nextRound(2);
   await expectError(w.seat(2, round, [ten[0].publicKey]), /ConstraintHasOne/);
   await chain.send([ixs.setAuthority(next.publicKey, w.authority.publicKey)], [next]);
   await w.seat(2, round, [ten[0].publicKey]);
