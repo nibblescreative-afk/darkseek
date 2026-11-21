@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Checks a DarkSeek release (docs/verify.md).
 #
-#   scripts/verify-release.sh <tag> [--dir <assets dir>] [--cluster devnet|mainnet-beta|localnet]
+#   scripts/verify-release.sh <tag> [--dir <assets dir>] [--cluster devnet|testnet|mainnet-beta|localnet]
 #                             [--program <id>] [--rpc <url>] [--web <site url>]
 #
 #  1. downloads the release assets into a temporary directory (or uses --dir)

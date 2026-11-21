@@ -28,8 +28,9 @@ export function loadKeypair(path: string): Keypair {
 
 const MAINNET_GENESIS = '5eykt4UsFv8P8NJdTREpY1vzqKqZKvdpKuc147dw2N9d';
 const DEVNET_GENESIS = 'EtWTRABZaYq6iMfeYKouRu166VU2xqa1wcaWoxPkrZBG';
+const TESTNET_GENESIS = '4uhcVJyU9pJkvQyS88uRDiswHXSCkY3zQawwpjk2NsNY';
 
-export type ClusterName = 'mainnet-beta' | 'devnet' | 'local';
+export type ClusterName = 'mainnet-beta' | 'devnet' | 'testnet' | 'local';
 
 /** Which cluster the RPC serves; mainnet only with `--mainnet`. */
 export async function clusterOf(conn: Connection, allowMainnet: boolean): Promise<ClusterName> {
@@ -38,7 +39,8 @@ export async function clusterOf(conn: Connection, allowMainnet: boolean): Promis
     if (!allowMainnet) throw new Error('this RPC is mainnet: pass --mainnet if that is what you mean');
     return 'mainnet-beta';
   }
-  return genesis === DEVNET_GENESIS ? 'devnet' : 'local';
+  if (genesis === DEVNET_GENESIS) return 'devnet';
+  return genesis === TESTNET_GENESIS ? 'testnet' : 'local';
 }
 
 /** Sends one transaction signed by `signers` (the first pays) and waits for it. */

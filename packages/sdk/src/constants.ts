@@ -51,7 +51,7 @@ export const PUBLISHED = {
   buybackTargetShareBps: 5_000,
 } as const;
 
-export type Cluster = 'devnet' | 'mainnet-beta' | 'localnet';
+export type Cluster = 'devnet' | 'testnet' | 'mainnet-beta' | 'localnet';
 
 export interface Deployment {
   cluster: Cluster;

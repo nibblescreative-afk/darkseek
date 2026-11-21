@@ -6,7 +6,7 @@ import type { Cluster } from './constants.js';
 export type ExplorerKind = 'tx' | 'account' | 'token';
 
 /**
- * A Solscan link (devnet and mainnet). A local validator has no public
+ * A Solscan link (devnet, testnet and mainnet). A local validator has no public
  * explorer, so localnet links open the Solana Explorer on a custom RPC.
  */
 export function explorerUrl(kind: ExplorerKind, id: string | PublicKey, cluster: Cluster = 'devnet', localRpc = 'http://127.0.0.1:8899'): string {
@@ -15,7 +15,7 @@ export function explorerUrl(kind: ExplorerKind, id: string | PublicKey, cluster:
     const path = kind === 'tx' ? 'tx' : 'address';
     return `https://explorer.solana.com/${path}/${value}?cluster=custom&customUrl=${encodeURIComponent(localRpc)}`;
   }
-  const query = cluster === 'devnet' ? '?cluster=devnet' : '';
+  const query = cluster === 'devnet' || cluster === 'testnet' ? `?cluster=${cluster}` : '';
   return `https://solscan.io/${kind}/${value}${query}`;
 }
 

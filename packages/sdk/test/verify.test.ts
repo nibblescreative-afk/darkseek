@@ -163,5 +163,6 @@ test('explorer links go to Solscan', () => {
   assert.equal(explorerUrl('tx', 'abc', 'devnet'), 'https://solscan.io/tx/abc?cluster=devnet');
   assert.equal(explorerUrl('account', 'xyz', 'mainnet-beta'), 'https://solscan.io/account/xyz');
   assert.equal(explorerUrl('token', 'mint', 'devnet'), 'https://solscan.io/token/mint?cluster=devnet');
+  assert.equal(explorerUrl('tx', 'abc', 'testnet'), 'https://solscan.io/tx/abc?cluster=testnet');
   assert.match(explorerUrl('tx', 'abc', 'localnet'), /explorer\.solana\.com\/tx\/abc\?cluster=custom/);
 });

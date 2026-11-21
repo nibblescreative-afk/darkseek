@@ -15,7 +15,7 @@ const USAGE = `usage: darkseek-verify [all|config|solvency|program|ds-mint|nft] 
   --ds-mint <mint>           config, ds-mint: the published $DS mint
   --launch-buy-usdc <units>  config: the USDC value of the launch buy published in
                              deployments.md (the first buyback target is half of it)
-  --cluster <devnet|mainnet-beta|localnet>   default devnet
+  --cluster <devnet|testnet|mainnet-beta|localnet>   default devnet
   --rpc <url>                default: the cluster's public endpoint
   --so <file>                program: compare with a release .so
   --upgrade-authority <key>  program: the published upgrade authority
@@ -44,6 +44,7 @@ function args(argv: string[]) {
 
 const RPC: Record<Cluster, string> = {
   devnet: 'https://api.devnet.solana.com',
+  testnet: 'https://api.testnet.solana.com',
   'mainnet-beta': 'https://api.mainnet-beta.solana.com',
   localnet: 'http://127.0.0.1:8899',
 };
