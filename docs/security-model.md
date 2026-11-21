@@ -58,9 +58,11 @@ program up under their own admin key before its deployer does.
 
 **The admin cannot:**
 
-- take anything from a vault, a room, the staker pool, the rebate pool, the
-  buyback pool, the $DS reserve, staked $DS or a vesting account. The only
-  instruction that pays the admin is `sweep_treasury`, capped by the treasury;
+- take anything from a vault, a room, the $DS reserve, staked $DS or a vesting
+  account. The only instruction that pays the admin is `sweep_treasury`,
+  capped by the treasury. The staker, rebate and buyback pools are out of its
+  reach once `init_ds` has recorded the real $DS; before that, see
+  [Known limits of v0.3.0](#known-limits-of-v030);
 - change the fee, its split, the stakes, the USDC mint, the $DS mint or the
   auction's parameters after setup: no instruction writes them again;
 - raise or reset the buyback target: `init_ds` sets it once, and the only
@@ -73,7 +75,9 @@ program up under their own admin key before its deployer does.
 below. Every change is an event on the program's history. The program cannot
 tell a copycat token from the real $DS when `init_ds` runs; it only checks that
 the supply is fixed. Check that `config.ds_mint` is the published $DS mint
-(`npm run verify -- config` does).
+(`npm run verify -- config` does). The auction settings `init_ds` records (the
+floor, the duration, the lot, the first target) are its arguments, not program
+rules, and v0.3.0 bounds them only loosely.
 
 ## The game server
 
@@ -83,7 +87,7 @@ it signs is checked against `config.authority`.
 | Instruction | What it can do | Limits |
 |---|---|---|
 | `open_vault` | create a vault for any wallet (anyone can) | pays the rent; the vault belongs to that wallet |
-| `lock_stake` | move a seat's stake from a player's free balance into a room | only with an active session from that player; counts toward the session's daily cap; only the fixed stake for that tier and role; one seat per wallet per room; only while the room is open |
+| `lock_stake` | move a seat's stake from a player's free balance into a room | only with an active session from that player; counts toward the session's daily cap; only the fixed stake for that tier and role; one seat per wallet per room; only while the room is open, or to open the next round of a settled room (v0.3.0 accepts any higher round number: see the known limits) |
 | `unlock_stake` | give a stake back before the round starts | the whole stake, to the vault it came from |
 | `start_round` | start a round and take the fee | only when all ten seats are staked; the fee is 10% of each seat, split by the fixed shares |
 | `settle_round` | report the outcome: who survived, and which Seeker caught each Hider | the program computes every payout from the published rules; only the ten seated vaults are paid, each must be passed in slot order; payouts never exceed the room's pot |
@@ -95,7 +99,10 @@ it signs is checked against `config.authority`.
   seat, and only under that player's session and cap;
 - pay itself or anyone who is not seated in that room;
 - pay more than the room holds, or choose amounts: it reports outcomes only;
-- start a round with an empty seat, a bot or a house stake;
+- start a round with an empty seat. (It could seat wallets it controls as if
+  they were players: the program cannot tell whose wallet sits in a seat. That
+  the game never does is a promise the game keeps, and the public history of
+  every wallet and the game's fair play watch are how it is checked.)
 - touch the treasury, the pools, the $DS reserve, staked $DS or rewards;
 - change any setting.
 
@@ -105,13 +112,22 @@ dishonest server could report a wrong outcome, or cancel a round after it
 started (which costs every player the fee, never more). This trust is bounded:
 
 - a player's exposure is limited to the stakes the session's daily cap allows
-  (100 USDC a day by default, chosen by the player) and ends when the player
-  revokes the session (`set_session` with a past expiry);
+  (100 USDC a day by default, chosen by the player; the day is the UTC
+  calendar day, so up to twice the cap can be locked within a few seconds
+  around midnight UTC) and ends when the player revokes the session
+  (`set_session` with a past expiry; locks already made stay);
 - every round is public: `RoundStarted` lists the ten wallets and the fee,
   `RoundSettled` the outcome and every payout, so anyone can audit win rates
   per wallet;
-- planned: signed round results and replays, so a disputed round can be
-  checked against what the players saw.
+- every round's result is signed by this same key and published by the game
+  (`/api/rounds`): the seats, who caught whom and when, the outcome sent to
+  `settle_round`, and the seed the spawns and roles were dealt from, revealed
+  against a commit made before anyone sat down ([fairness.md](fairness.md)).
+  `npm run verify -- rounds` checks each record's signature, its deal and its
+  settle transaction, so a server that settles one thing and reports another
+  is caught by anyone;
+- planned: replays, so a disputed round can be checked against what the
+  players saw.
 
 ## The vault owner
 
@@ -160,6 +176,37 @@ seller's signature.
 $DS paths go through the token interface, so they work the same whether pump.fun
 created $DS on SPL Token or on Token 2022; the token program is recorded with
 the mint and checked on every $DS instruction.
+
+## Known limits of v0.3.0
+
+An internal review of release v0.3.0 (November 2026,
+[audits/2026-11-21-internal-review.md](audits/2026-11-21-internal-review.md);
+not an external audit) found no way for a player, an outsider or the game
+server to take funds beyond what this page concedes, and the payout and fee
+arithmetic sound to the base unit. It found these limits, to be fixed in
+v0.4.0 and until then part of the trust above:
+
+- **Before `init_ds`, the pools are not out of the admin's reach.** Every round
+  fills the staker, rebate and buyback pools whether or not $DS is recorded.
+  An admin that records a token of its own with loose auction settings could
+  sell it into the auction and take the rebate and buyback pools, and stake it
+  to collect the stakers' share. Planned: no accrual until $DS is recorded, and
+  bounded auction settings checked onchain and by `npm run verify -- config`.
+- **The game server key can switch a room off for good.** `lock_stake` on a
+  settled room accepts any higher round number, so a round number at the top
+  of the range leaves no next round. No funds are lost; a program upgrade
+  repairs it. Planned: only the next round number.
+- **A dishonest game server can hold a lobby's stakes.** Only the game server
+  unlocks a seat before the round starts, and any lock or unlock restarts the
+  two hour clock of `abort_stale_round`. Planned: a seat's owner can leave an
+  open room on their own after a timeout.
+- **Back to back auction fills.** Several fills in one transaction each restart
+  the price at 1.5 times the last fill, so after a sharp drop in the price of
+  $DS the auction can overpay. Planned: a minimum time between fills.
+- **The stakers' carry.** While nobody stakes $DS, the stakers' share waits and
+  goes to whoever is staked at the next round's start. Planned: release it over
+  time.
+- **The daily cap is per UTC day**, as written above.
 
 ## Not covered by the program
 

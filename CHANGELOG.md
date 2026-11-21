@@ -6,6 +6,15 @@
   and addresses as on devnet (docs/deployments.md), with a test only token
   shaped like a pump.fun mint recorded by `init_ds`, so the $DS settings are
   checked onchain too. The game runs there now. Test money only.
+- Signed round results: `darkseek-verify rounds --site <game>` checks every
+  round result the game publishes: its signature (a Solana off-chain message
+  from the program's game server key), the fair deal (the revealed seed against
+  its commit, every spawn and role dealt again), the outcome against the
+  captures, and the settle transaction onchain. docs/fairness.md specifies the
+  deal and the record.
+- An internal review of v0.3.0, with the limits it found and the fixes planned
+  for v0.4.0: docs/audits/2026-11-21-internal-review.md and
+  docs/security-model.md.
 - SDK: `testnet` is a known cluster. `DEPLOYMENTS.testnet` is that
   deployment, `darkseek-verify --cluster testnet` uses the public testnet RPC,
   and Solscan links carry `?cluster=testnet`. The scripts recognise the

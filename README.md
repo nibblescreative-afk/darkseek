@@ -167,7 +167,9 @@ npm run verify -- all --cluster testnet
 It checks the settings against the white paper, the $DS mint, solvency
 (custody covers every balance owed) and the program hash;
 `scripts/verify-release.sh v0.3.0 --cluster testnet` checks that the program
-onchain is the release build. Pass `--cluster devnet` for the devnet one. Details in
+onchain is the release build. Pass `--cluster devnet` for the devnet one.
+`npm run verify -- rounds --cluster testnet` checks the game's newest signed
+round results against their settle transactions. Details in
 [verify.md](docs/verify.md). The same checks run in the tests against a local
 validator.
 

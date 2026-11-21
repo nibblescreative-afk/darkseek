@@ -166,3 +166,17 @@ Every movement of value logs an event (`RoundStarted`, `RoundSettled`,
 `Buyback`, ...). The indexer (`apps/indexer`) follows the program and serves
 totals per room and round; you can run your own copy against any RPC endpoint
 and compare it with the program's own running totals (`config.totals`).
+
+## 8. Round results
+
+Every round's result is signed by the game server key and published by the
+game ([fairness.md](fairness.md#signed-round-results)). One command checks the
+newest ones: the signature against the program's `config.authority`, the deal
+against its commit, the outcome against the captures, and the settle
+transaction onchain (same room, round, outcome bytes and ten vaults, and it
+succeeded):
+
+```sh
+npm run verify -- rounds --cluster testnet --site https://thedarkseek.xyz --limit 20
+```
+

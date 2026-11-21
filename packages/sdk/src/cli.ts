@@ -7,8 +7,9 @@ import { Connection, PublicKey } from '@solana/web3.js';
 import { DEPLOYMENTS, PROGRAM_ID, type Cluster } from './constants.js';
 import { checkCharacterNft, checkDsMint, checkSolvency, configChecks, executableHash, fetchConfig, fetchProgramInfo, isUnset, toReport, type Check, type Report } from './verify.js';
 import { accountUrl } from './explorer.js';
+import { checkRounds } from './rounds.js';
 
-const USAGE = `usage: darkseek-verify [all|config|solvency|program|ds-mint|nft] [options]
+const USAGE = `usage: darkseek-verify [all|config|solvency|program|ds-mint|nft|rounds] [options]
 
   --program <id>             the deployment's program id (see docs/deployments.md)
   --usdc-mint <mint>         config: the stake token the deployment publishes
@@ -21,6 +22,9 @@ const USAGE = `usage: darkseek-verify [all|config|solvency|program|ds-mint|nft] 
   --upgrade-authority <key>  program: the published upgrade authority
   --mint <key>               nft: the character mint to check
   --update-authority <key>   nft: the published metadata update authority
+  --site <url>               rounds: the game whose signed round results to check
+                             (default https://thedarkseek.xyz)
+  --limit <n>                rounds: how many of the newest rounds (default 20)
   --json                     print the reports as JSON
 
 Without --program, the official deployment for the cluster is used, as
@@ -107,6 +111,12 @@ async function main(): Promise<number> {
   if (command === 'ds-mint') {
     if (!dsMint) throw new Error('--ds-mint is required');
     sections.push(['$DS mint', await checkDsMint(conn, new PublicKey(dsMint))]);
+  }
+  if (command === 'rounds') {
+    // the game server key is whatever the program's config names as its authority
+    const config = await fetchConfig(conn, programId);
+    const limit = Math.min(100, Math.max(1, Number(str('limit') ?? 20)));
+    sections.push(['Round results', await checkRounds(conn, programId, config.authority.toBase58(), str('site') ?? 'https://thedarkseek.xyz', limit, cluster)]);
   }
   if (command === 'nft') {
     const mint = str('mint');
