@@ -12,11 +12,12 @@
 // 3 casual and 4 to 6 pro, then init_ds once $DS exists. For the launch:
 //   --buyback-target  half the USDC value of the launch buy (3% of supply)
 //   --genesis-price   $DS the launch buy got per USDC
-//   --floor-price     defaults to a thousandth of the genesis price (rounded up): the
-//                     auction never pays more than 1000 times the launch price
-// v0.4.0 bounds what init_ds accepts: the floor at least a thousandth of the genesis
-// price, a descent of 1 hour to 7 days, a lot of at most 100 000 USDC, a first target
-// of at most 1 000 000 USDC. Until $DS is recorded the whole fee goes to the treasury.
+//   --floor-price     an emergency bound only, defaults to 1 base unit: no fixed limit,
+//                     the auction follows the last fill and past it its bid at most
+//                     doubles every leg (--auction-hours, 6 by default)
+// v0.4.0 bounds what init_ds accepts: a floor above zero and at most the genesis price,
+// legs of 6 hours to 7 days, a lot of at most 100 000 USDC, a first target of at most
+// 1 000 000 USDC. Until $DS is recorded the whole fee goes to the treasury.
 // All of these go into docs/deployments.md with the conversion used.
 //
 // --propose-admin hands the admin role on: the first step of two, the proposed
@@ -74,7 +75,7 @@ async function main() {
         buybackTarget: BigInt(required(f, 'buyback-target')),
         genesisPrice,
         // at least a thousandth of the genesis price, rounded up (the program refuses less, v0.4.0)
-        floorPrice: typeof f['floor-price'] === 'string' ? BigInt(f['floor-price']) : (genesisPrice + 999n) / 1_000n,
+        floorPrice: typeof f['floor-price'] === 'string' ? BigInt(f['floor-price']) : 1n,
         duration: BigInt(Math.round(Number(typeof f['auction-hours'] === 'string' ? f['auction-hours'] : 6) * 3_600)),
         lot: BigInt(typeof f.lot === 'string' ? f.lot : 1_000_000_000),
         minFill: BigInt(typeof f['min-fill'] === 'string' ? f['min-fill'] : 1_000_000),

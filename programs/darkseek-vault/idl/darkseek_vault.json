@@ -1346,7 +1346,9 @@
         "for the buyback is burned here and now; $DS bought for rebates joins the",
         "reserve. When a round's budget is spent, the next target is 98% of this",
         "one. The price then restarts at 1.5 times this fill, or 3 times when this",
-        "fill came within ten minutes of the one before."
+        "fill came within ten minutes of the one before, and descends from there",
+        "(`auction_price`): the bid follows the market, at most doubling every leg",
+        "past this fill's price."
       ],
       "discriminator": [
         217,
@@ -2767,14 +2769,16 @@
           {
             "name": "floor_price",
             "docs": [
-              "lowest price the auction ever asks, so the most USDC paid per $DS"
+              "lowest price the auction ever asks, so the most USDC paid per $DS: an",
+              "emergency bound only, the descent follows the last fill"
             ],
             "type": "u64"
           },
           {
             "name": "duration",
             "docs": [
-              "seconds from the start price down to the floor"
+              "seconds of each leg of the descent: the bid at most doubles every leg past",
+              "the last fill's price"
             ],
             "type": "i64"
           },
@@ -3158,10 +3162,16 @@
           },
           {
             "name": "floor_price",
+            "docs": [
+              "lowest price the auction ever asks: an emergency bound, 1 for none"
+            ],
             "type": "u64"
           },
           {
             "name": "duration",
+            "docs": [
+              "seconds of each leg of the descent, six hours to seven days"
+            ],
             "type": "i64"
           },
           {

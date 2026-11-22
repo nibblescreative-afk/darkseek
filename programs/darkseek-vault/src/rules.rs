@@ -125,15 +125,15 @@ pub fn earned(staked: u64, acc: u128, index: u128) -> Result<u64> {
     u64::try_from(v).map_err(|_| error!(VaultError::Overflow))
 }
 
-/// The auction settings `init_ds` accepts: a floor above zero and at least a
-/// thousandth of the genesis price, a descent of one hour to seven days, a minimum
-/// fill above zero and at most the lot, a lot of at most 100 000 USDC, and a first
-/// buyback target above zero and at most 1 000 000 USDC.
+/// The auction settings `init_ds` accepts: a floor above zero and at most the
+/// genesis price, legs of six hours to seven days, a minimum fill above zero and at
+/// most the lot, a lot of at most 100 000 USDC, and a first buyback target above
+/// zero and at most 1 000 000 USDC. The floor is only an emergency bound: the
+/// descent follows the last fill (`auction_price`), so 1 records none.
 pub fn ds_args_ok(a: &crate::DsArgs, usdc_unit: u64) -> bool {
     let unit = usdc_unit as u128;
     a.floor_price > 0
         && a.genesis_price >= a.floor_price
-        && a.genesis_price as u128 <= a.floor_price as u128 * MAX_GENESIS_OVER_FLOOR as u128
         && (MIN_AUCTION_SECS..=MAX_AUCTION_SECS).contains(&a.duration)
         && a.min_fill > 0
         && a.lot >= a.min_fill
@@ -191,16 +191,25 @@ pub fn buyback_target_after(initial: u64, rounds: u64) -> u64 {
 
 // ---------------------------------------------------------------------- auction
 
-/// The price the auction asks at `now`: 1.5 times the last fill, falling in a
-/// straight line to the floor over `duration` seconds, then staying there.
+/// The price the auction asks at `now`, in $DS per USDC. It follows the market
+/// through the last fill (`last_price`): it starts at 1.5 times that fill and
+/// falls in straight legs of `duration` seconds. The first leg ends at half the
+/// fill's price, each later leg at half the end of the one before, so past the
+/// last fill the program's bid at most doubles every leg, with no fixed cap.
+/// It never asks less than the floor, an emergency bound.
 pub fn auction_price(a: &Auction, now: i64) -> u64 {
-    let restart = (a.last_price as u128 * AUCTION_RESTART_BPS as u128 / BPS as u128).min(u64::MAX as u128) as u64;
-    let start = restart.max(a.floor_price);
-    let elapsed = now.saturating_sub(a.started_at).max(0);
-    if a.duration <= 0 || elapsed >= a.duration {
+    if a.duration <= 0 {
         return a.floor_price;
     }
-    let drop = (start - a.floor_price) as u128 * elapsed as u128 / a.duration as u128;
+    let elapsed = now.saturating_sub(a.started_at).max(0);
+    let leg = elapsed / a.duration;
+    let into = elapsed % a.duration;
+    // where leg k ends: the last fill's price halved k + 1 times
+    let halved = |k: i64| if k >= 64 { 0 } else { a.last_price >> k };
+    let restart = (a.last_price as u128 * AUCTION_RESTART_BPS as u128 / BPS as u128).min(u64::MAX as u128) as u64;
+    let start = if leg == 0 { restart } else { halved(leg) }.max(a.floor_price);
+    let end = halved(leg + 1).max(a.floor_price);
+    let drop = (start - end) as u128 * into as u128 / a.duration as u128;
     start - drop as u64
 }
 
@@ -367,19 +376,41 @@ mod tests {
     }
 
     #[test]
-    fn auction_descends_from_one_and_a_half_times_the_last_fill_to_the_floor() {
+    fn auction_follows_the_last_fill_and_its_bid_at_most_doubles_every_leg() {
         let a = Auction { last_price: 100 * U, started_at: 1_000, floor_price: U, duration: 600, lot: 1_000 * U, min_fill: U };
-        assert_eq!(auction_price(&a, 1_000), 150 * U);
+        assert_eq!(auction_price(&a, 1_000), 150 * U, "1.5 times the last fill");
         assert_eq!(auction_price(&a, 900), 150 * U, "clock before the start: start price");
-        assert_eq!(auction_price(&a, 1_300), 150 * U - (149 * U) / 2);
-        assert_eq!(auction_price(&a, 1_600), U);
-        assert_eq!(auction_price(&a, 99_999), U);
+        assert_eq!(auction_price(&a, 1_300), 100 * U, "halfway through the first leg: the last fill's price");
+        assert_eq!(auction_price(&a, 1_600), 50 * U, "end of the first leg: the bid is twice the last fill");
+        assert_eq!(auction_price(&a, 1_900), (50 * U + 25 * U) / 2);
+        assert_eq!(auction_price(&a, 2_200), 25 * U, "every later leg doubles the bid again");
+        assert_eq!(auction_price(&a, 2_800), (100 * U) >> 3);
+        // 100 USDC halved 7 times is under the floor of 1: the price rests there, as long as it waits
+        assert_eq!(auction_price(&a, 1_000 + 7 * 600), U);
+        assert_eq!(auction_price(&a, i64::MAX), U);
         let mut prev = u64::MAX;
-        for t in (1_000..1_700).step_by(7) {
+        for t in (1_000..6_000).step_by(7) {
             let p = auction_price(&a, t);
-            assert!(p <= prev && p >= a.floor_price);
+            assert!(p <= prev && p >= a.floor_price, "never rises, never under the floor");
             prev = p;
         }
+        // at every leg's end the bid is exactly 2, 4, 8 ... times the last fill's
+        for k in 0..6 {
+            assert_eq!(auction_price(&a, 1_000 + (k + 1) * 600), (100 * U) >> (k + 1));
+        }
+    }
+
+    #[test]
+    fn with_no_floor_the_descent_still_doubles_at_most_every_leg() {
+        let a = Auction { last_price: 300_000 * U, started_at: 0, floor_price: 1, duration: 6 * 3_600, lot: 1_000 * U, min_fill: U };
+        // a day after the last fill the program pays at most 16 times its price
+        assert_eq!(auction_price(&a, 4 * 6 * 3_600), (300_000 * U) >> 4);
+        // the halving runs out after 64 legs and the price rests at the floor of one base unit
+        assert_eq!(auction_price(&a, 64 * 6 * 3_600), 1);
+        assert_eq!(auction_price(&a, i64::MAX), 1);
+        let top = Auction { last_price: u64::MAX, ..a };
+        assert_eq!(auction_price(&top, 0), u64::MAX, "the restart saturates");
+        assert_eq!(auction_price(&top, 6 * 3_600), u64::MAX >> 1);
     }
 
     #[test]
@@ -487,12 +518,14 @@ mod tests {
     fn init_ds_settings_are_bounded() {
         let ok = crate::DsArgs { genesis_price: 300_000 * U, floor_price: 300 * U, duration: 6 * 3_600, lot: 1_000 * U, min_fill: U, buyback_target: 50 * U };
         assert!(ds_args_ok(&ok, U));
+        // no fixed limit: a floor of one base unit is accepted under any genesis price
+        assert!(ds_args_ok(&crate::DsArgs { floor_price: 1, genesis_price: u64::MAX, ..ok }, U));
         let bad = [
             crate::DsArgs { floor_price: 0, ..ok },
             crate::DsArgs { genesis_price: ok.floor_price - 1, ..ok },
-            crate::DsArgs { genesis_price: ok.floor_price * 1_000 + 1, ..ok },
             crate::DsArgs { duration: 1, ..ok },
-            crate::DsArgs { duration: 3_599, ..ok },
+            crate::DsArgs { duration: 3_600, ..ok },
+            crate::DsArgs { duration: 6 * 3_600 - 1, ..ok },
             crate::DsArgs { duration: 7 * DAY + 1, ..ok },
             crate::DsArgs { min_fill: 0, ..ok },
             crate::DsArgs { min_fill: ok.lot + 1, ..ok },
@@ -504,7 +537,7 @@ mod tests {
             assert!(!ds_args_ok(a, U), "case {i} should be refused");
         }
         // the edges themselves are accepted
-        assert!(ds_args_ok(&crate::DsArgs { genesis_price: ok.floor_price * 1_000, duration: 3_600, lot: 100_000 * U, buyback_target: 1_000_000 * U, ..ok }, U));
+        assert!(ds_args_ok(&crate::DsArgs { genesis_price: ok.floor_price, duration: 6 * 3_600, lot: 100_000 * U, buyback_target: 1_000_000 * U, ..ok }, U));
         assert!(ds_args_ok(&crate::DsArgs { duration: 7 * DAY, ..ok }, U));
     }
 

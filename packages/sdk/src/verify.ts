@@ -194,7 +194,7 @@ export function configChecks(c: ConfigAccount, expected: ExpectedSettings = {}):
       unit,
     );
     checks.push({
-      name: 'auction settings are within the bounds: floor at least a thousandth of the genesis price, a descent of 1 hour to 7 days, a lot of at most 100,000 USDC, a first target of at most 1,000,000 USDC',
+      name: 'auction settings are within the bounds: a floor above zero and at most the genesis price, legs of 6 hours to 7 days, a lot of at most 100,000 USDC, a first target of at most 1,000,000 USDC',
       ok: bounded,
       detail: `floor ${a.floorPrice}${filled ? '' : `, genesis ${a.lastPrice}`}, ${a.duration} s, lot ${a.lot}, min fill ${a.minFill}, first target ${c.buybackTargetInitial}`,
     });

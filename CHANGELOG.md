@@ -11,8 +11,15 @@ a deployment upgrades in place.
 
 - Until $DS is recorded the whole fee goes to the treasury; the staker, rebate
   and buyback pools fill from the round after `init_ds`.
-- `init_ds` refuses auction settings outside bounds: a floor under a thousandth
-  of the genesis price, a descent under an hour or over seven days, a lot over
+- The auction follows the market, with no fixed rate. After a fill its price
+  restarts at 1.5 times that fill and falls in legs of `duration`: the first
+  ends at half that fill's price, each later one at half the end of the one
+  before, so past the last fill the program's bid at most doubles every leg.
+  The floor is only an emergency bound (one base unit records none). In v0.3.0
+  the price stopped at the floor after one leg, so the program never paid
+  more than the floor allowed, whatever the market.
+- `init_ds` refuses auction settings outside bounds: a floor of zero or above
+  the genesis price, legs under six hours or over seven days, a lot over
   100,000 USDC, a first target over 1,000,000 USDC.
 - `lock_stake` takes only the next round number.
 - `leave_seat`: a seated player leaves an open lobby on their own, with the whole
@@ -37,7 +44,9 @@ a deployment upgrades in place.
   constants; `accrueRewards` follows the program. `npm run verify -- config`
   checks the auction bounds, and warns about fees that waited in the pools
   before $DS was recorded. The indexer lists `SeatLeft` with a round's stake
-  events. `scripts/setup-cluster.ts` rounds the default floor up. On mainnet
+  events. `auctionPrice` and `secondsUntilPrice` follow the new descent.
+  `scripts/setup-cluster.ts` defaults the floor to one base unit (no fixed
+  limit). On mainnet
   the verifier compares the stake token with Circle's USDC
   (`MAINNET_USDC_MINT`) unless told otherwise. The test $DS on Token 2022 now
   has no metadata update authority, as pump.fun's coins
@@ -79,8 +88,9 @@ a deployment upgrades in place.
 - It may offer `leave_seat` to a player whose lobby has been forming for 30
   minutes (`leaveSeat` in the SDK; the player signs as the vault owner, and the
   game may pay the network fee). `TooEarly` means the 30 minutes are not up.
-- Use `@darkseek/sdk` 0.4.0, so `TooEarly` maps by name and the rules
-  (`feeParts`, `accrueRewards`, `nextReferencePrice`) match the program.
+- Use `@darkseek/sdk` 0.4.0, so `TooEarly` and `DsSupply` map by name and the
+  rules (`feeParts`, `accrueRewards`, `nextReferencePrice`, `auctionPrice`,
+  `secondsUntilPrice`) match the program.
 - Until $DS is recorded, show the whole fee as going to the treasury.
 
 ### Upgrading a deployment
@@ -93,6 +103,9 @@ a deployment upgrades in place.
   every stake back).
 - Fees that waited in the staker, rebate or buyback pool before v0.4.0 stay
   there; `npm run verify -- config` warns about them.
+- A recorded auction keeps its settings and moves to the new descent from its
+  last fill at once. On testnet the recorded floor (300 tokens per USDC) stays
+  as its emergency bound.
 
 ## 0.3.0 (2026-11-20)
 

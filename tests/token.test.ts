@@ -119,7 +119,7 @@ test('setup-cluster records a pump.fun shaped $DS with its buyback target, once'
   assert.ok(configChecks(config, { dsMint, admin: admin.publicKey, authority: server.publicKey, launchBuyUsdc: 300n * U }).every((c) => c.ok));
   assert.ok(config.dsTokenProgram.equals(TOKEN_2022_PROGRAM_ID));
   assert.deepEqual([config.buybackTarget, config.buybackTargetInitial, config.buybacksDone], [150n * U, 150n * U, 0n]);
-  assert.equal(config.auction.floorPrice, 100n * U, 'never more than 1000 times the launch price');
+  assert.equal(config.auction.floorPrice, 1n, 'no fixed limit: the descent follows the last fill');
   // running it again changes nothing, and nobody can record a second target
   run('setup-cluster.ts', [...args, '--ds-mint', dsMint.toBase58()]);
   await expectError(chain.send([ixs.initDs(admin.publicKey, dsMint, { ...ARGS, buybackTarget: 999n * U }, TOKEN_2022_PROGRAM_ID)], [admin]), /already in use|DsAlreadySet/);

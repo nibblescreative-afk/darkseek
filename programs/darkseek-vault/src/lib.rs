@@ -68,7 +68,9 @@ pub struct InitArgs {
 pub struct DsArgs {
     /// reference price until the first fill, in $DS base units per whole USDC
     pub genesis_price: u64,
+    /// lowest price the auction ever asks: an emergency bound, 1 for none
     pub floor_price: u64,
+    /// seconds of each leg of the descent, six hours to seven days
     pub duration: i64,
     pub lot: u64,
     pub min_fill: u64,
@@ -157,8 +159,8 @@ pub mod darkseek_vault {
         // pump.fun's one billion, or less after burns; a Mayhem mode coin has two billion
         require!(m.supply > 0 && m.supply <= DS_TOTAL_SUPPLY, VaultError::DsSupply);
         check_mint_extensions(&m.to_account_info())?;
-        // bounded settings: a floor at most a thousand times under the genesis price, a descent of
-        // an hour to a week, a lot of at most 100 000 USDC, a first target of at most 1 000 000 USDC
+        // bounded settings: a floor above zero and at most the genesis price, legs of six hours to a
+        // week, a lot of at most 100 000 USDC, a first target of at most 1 000 000 USDC
         require!(ds_args_ok(&args, ctx.accounts.config.usdc_unit()), VaultError::BadParams);
         let now = Clock::get()?.unix_timestamp;
         let c = &mut ctx.accounts.config;
@@ -558,7 +560,9 @@ pub mod darkseek_vault {
     /// for the buyback is burned here and now; $DS bought for rebates joins the
     /// reserve. When a round's budget is spent, the next target is 98% of this
     /// one. The price then restarts at 1.5 times this fill, or 3 times when this
-    /// fill came within ten minutes of the one before.
+    /// fill came within ten minutes of the one before, and descends from there
+    /// (`auction_price`): the bid follows the market, at most doubling every leg
+    /// past this fill's price.
     pub fn sell_ds(ctx: Context<SellDs>, max_ds: u64, min_usdc: u64) -> Result<()> {
         let now = Clock::get()?.unix_timestamp;
         let c = &ctx.accounts.config;

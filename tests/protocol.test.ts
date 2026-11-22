@@ -133,10 +133,9 @@ test('$DS is recorded once, on Token 2022 like a pump.fun mint, and only if nobo
   await expectError(init(stranger), 'NotAdmin');
   await expectError(init(w.admin, { ...DS_ARGS, genesisPrice: U / 2n }), 'BadParams');
   await expectError(init(w.admin, { ...DS_ARGS, buybackTarget: 0n }), 'BadParams');
-  // v0.4.0 bounds: a floor more than a thousand times under the genesis price, a descent shorter than an
-  // hour or longer than a week, a lot over 100 000 USDC or a first target over 1 000 000 USDC are refused
-  await expectError(init(w.admin, { ...DS_ARGS, floorPrice: U / 100n }), 'BadParams');
-  await expectError(init(w.admin, { ...DS_ARGS, duration: 600n }), 'BadParams');
+  // v0.4.0 bounds: legs shorter than six hours or longer than a week, a lot over 100 000 USDC or a first
+  // target over 1 000 000 USDC are refused; the floor may be as low as one base unit (no fixed limit)
+  await expectError(init(w.admin, { ...DS_ARGS, duration: 21_599n }), 'BadParams');
   await expectError(init(w.admin, { ...DS_ARGS, duration: 8n * 86_400n }), 'BadParams');
   await expectError(init(w.admin, { ...DS_ARGS, lot: 100_001n * U }), 'BadParams');
   await expectError(init(w.admin, { ...DS_ARGS, buybackTarget: 1_000_001n * U }), 'BadParams');

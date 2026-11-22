@@ -36,8 +36,8 @@ bought 3% of the supply (30,000,000 tokens) for 100 test USDC:
 |---|---|
 | First buyback target | 50 test USDC, half the assumed launch buy |
 | Genesis price | 300,000 tokens per USDC (`300000000000` base units) |
-| Floor price | 300 tokens per USDC, a thousandth of the genesis price |
-| Auction | 6 hours from the start price to the floor; at most 1,000 USDC and at least 1 USDC per fill |
+| Floor price | 300 tokens per USDC, a thousandth of the genesis price; from v0.4.0 an emergency bound only |
+| Auction | legs of 6 hours (v0.3.0: one leg from the start price to the floor; from v0.4.0 the bid at most doubles every leg past the last fill); at most 1,000 USDC and at least 1 USDC per fill |
 
 Check it yourself, from a clone of this repository:
 
@@ -93,7 +93,7 @@ $DS is created on pump.fun. At launch this page lists:
 | Launch buy transaction | its signature |
 | Launch buy in USDC | what the buy cost, converted to USDC, with the price source and time used |
 | First buyback target | half of that, as recorded by `init_ds` |
-| Auction | genesis price (the $DS the launch buy got per USDC), floor, duration, lot, minimum fill |
+| Auction | genesis price (the $DS the launch buy got per USDC), floor (one base unit: no fixed limit), leg duration, lot, minimum fill |
 | Team lock | if the team locks any of its tokens: the lock account, cliff and end |
 
 `npm run verify -- config --program <id> --ds-mint <mint> --launch-buy-usdc <units>`

@@ -100,9 +100,9 @@ program's history). On mainnet the stake token must be Circle's USDC,
 without `--usdc-mint`.
 
 Once $DS is recorded it also checks the auction settings against the bounds
-release v0.4.0 enforces (a floor of at least a thousandth of the genesis price,
-a descent of one hour to seven days, a lot of at most 100,000 USDC, a first
-target of at most 1,000,000 USDC). Before that it notes any fee waiting in the
+release v0.4.0 enforces (a floor above zero and at most the genesis price, legs
+of six hours to seven days, a lot of at most 100,000 USDC, a first target of at
+most 1,000,000 USDC). Before that it notes any fee waiting in the
 staker, rebate or buyback pool: from v0.4.0 the whole fee goes to the treasury
 until $DS is recorded, so anything there came in earlier.
 

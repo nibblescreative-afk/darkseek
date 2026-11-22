@@ -164,7 +164,8 @@ $DS: the only $DS it pays out is $DS it bought with fee money.
 4. Credit turns into $DS at the average price the reserve paid
    (`claim_rebate`; anyone may send it and the $DS can only land in that
    player's vault). Credit the reserve cannot cover yet waits for the next
-   purchases.
+   purchases. There is no fixed rate: a player's $DS is what the pool's USDC
+   actually bought at market prices.
 
 Every credit is backed by USDC in the rebate pool or by $DS the pool already
 bought; [solvency.md](solvency.md) shows how anyone checks it.
@@ -238,24 +239,28 @@ onchain, with no oracle and no operator.
   share to the reserve, then pays the seller USDC from custody. A fill pays
   from the open buyback round and from the rebate pool in proportion; the
   rebate pool buys at any time, the buyback only during a round.
-- **The price** is quoted in $DS per USDC. After each fill it restarts at 1.5
-  times the price of that fill (asking for 50% more $DS per USDC) and falls in a
-  straight line to a floor over six hours. Sellers wait until the program's bid
-  is worth taking, so fills land near the market price. A fill that comes within
-  ten minutes of the one before restarts it at 3 times instead: after a sudden
-  fall in the price of $DS a burst of fills lifts the bid out of the way fast,
-  instead of paying above the market lot after lot.
+- **The price** is quoted in $DS per USDC and follows the market, with no
+  fixed rate. After each fill it restarts at 1.5 times the price of that fill
+  (asking for 50% more $DS per USDC) and falls in straight legs of six hours:
+  the first leg ends at half that fill's price, each later leg at half the end
+  of the one before. Sellers wait until the program's bid is worth taking, so
+  fills land near the market price, wherever it goes. Past the last fill the
+  bid at most doubles every six hours: a hundredfold rise in the price of $DS
+  is caught up in under two days, while nobody can make the program pay far
+  above the market in one go. A fill that comes within ten minutes of the one
+  before restarts it at 3 times instead: after a sudden fall in the price of
+  $DS a burst of fills lifts the bid out of the way fast, instead of paying
+  above the market lot after lot.
 - **Limits.** One fill pays at most 1,000 USDC and at least 1 USDC, unless it
-  takes all that is on offer. The floor, set at launch to a thousandth of the
-  launch price in $DS per USDC, caps what the program ever pays per $DS; while
-  the market price is above that cap, nobody sells and the pools wait.
+  takes all that is on offer. The floor recorded at launch is only an
+  emergency bound, set to one base unit: no fixed limit on what the program
+  pays per $DS.
 - **Fixed rules.** The $DS mint, the first target and the auction's parameters
   are recorded once, within bounds the program enforces: a mint with at most
-  one billion tokens, a floor of at least a
-  thousandth of the launch price, a descent of one hour to seven days, a lot of
-  at most 100,000 USDC and a first target of at most 1,000,000 USDC. Nobody, the
-  admin included, can change them, pause the auction or take USDC from the pools
-  any other way.
+  one billion tokens, a floor above zero and at most the launch price, legs of
+  six hours to seven days, a lot of at most 100,000 USDC and a first target of
+  at most 1,000,000 USDC. Nobody, the admin included, can change them, pause
+  the auction or take USDC from the pools any other way.
 
 ## 8. Custody and solvency
 

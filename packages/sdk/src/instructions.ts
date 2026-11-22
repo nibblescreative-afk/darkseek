@@ -27,8 +27,9 @@ export interface InitArgs {
 export interface DsArgs {
   /** $DS base units per whole USDC until the first fill */
   genesisPrice: bigint;
+  /** lowest price the auction ever asks: an emergency bound only, 1 for none */
   floorPrice: bigint;
-  /** seconds from the start price to the floor */
+  /** seconds of each leg of the descent (6 hours to 7 days): past the last fill the bid at most doubles every leg */
   duration: bigint;
   /** most USDC per fill (base units) */
   lot: bigint;

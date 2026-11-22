@@ -35,10 +35,9 @@ export const CARRY_RELEASE_DIV = 10n;
 export const AUCTION_RESTART_BPS = 15_000n;
 /** a fill this soon after the one before restarts the price at 3 times instead of 1.5 */
 export const QUICK_REFILL_SECS = 10 * 60;
-/** the bounds init_ds puts on the auction settings */
-export const MIN_AUCTION_SECS = 3_600n;
+/** the bounds init_ds puts on the auction settings: each leg of the descent lasts six hours to seven days */
+export const MIN_AUCTION_SECS = 21_600n;
 export const MAX_AUCTION_SECS = 7n * 86_400n;
-export const MAX_GENESIS_OVER_FLOOR = 1_000n;
 export const MAX_LOT_USDC = 100_000n;
 export const MAX_BUYBACK_TARGET_USDC = 1_000_000n;
 /** after each completed buyback round the next target is 98% of the last */

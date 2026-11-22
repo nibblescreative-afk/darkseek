@@ -167,9 +167,12 @@ a possible change.
 - **1.** Until `init_ds` records $DS, `start_round` gives the whole fee to the
   treasury (`fee_parts`), so the staker, rebate and buyback pools stay empty and
   no choice of mint can take anything that waited. `init_ds` refuses settings
-  outside bounds (`ds_args_ok`): a floor under a thousandth of the genesis price,
-  a descent under an hour or over seven days, a lot over 100,000 USDC, a first
-  target over 1,000,000 USDC. `npm run verify -- config` checks the same bounds,
+  outside bounds (`ds_args_ok`): a floor of zero or above the genesis price,
+  legs under six hours or over seven days, a lot over 100,000 USDC, a first
+  target over 1,000,000 USDC. The descent no longer stops at a fixed floor: it
+  follows the last fill, and past it the bid at most doubles every leg, so
+  neither a wrong floor nor a short duration lets anyone empty the pools at an
+  absurd price in one go. `npm run verify -- config` checks the same bounds,
   and warns when a deployment from before v0.4.0 holds fees in those pools.
 - **2.** `lock_stake` accepts only the next round number: a settled room moves
   to round + 1, and an open room nobody sits in to round + 1, never further.

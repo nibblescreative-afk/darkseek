@@ -40,11 +40,10 @@ pub const REWARD_SCALE: u128 = 1_000_000_000_000;
 pub const AUCTION_RESTART_BPS: u64 = 15_000;
 /// A fill this soon after the one before counts double for the restart (3 times its price).
 pub const QUICK_REFILL_SECS: i64 = 10 * 60;
-/// Shortest and longest descent from the start price to the floor that `init_ds` accepts.
-pub const MIN_AUCTION_SECS: i64 = 3_600;
+/// Shortest and longest leg of the auction's descent that `init_ds` accepts. Past the
+/// last fill's price the bid at most doubles every leg, so at most every six hours.
+pub const MIN_AUCTION_SECS: i64 = 6 * 3_600;
 pub const MAX_AUCTION_SECS: i64 = 7 * DAY;
-/// The floor is at least this fraction of the genesis price (the auction never pays more than 1000 times the launch price).
-pub const MAX_GENESIS_OVER_FLOOR: u64 = 1_000;
 /// Most USDC one fill may take, and the largest first buyback target `init_ds` accepts, in whole USDC.
 pub const MAX_LOT_USDC: u64 = 100_000;
 pub const MAX_BUYBACK_TARGET_USDC: u64 = 1_000_000;
@@ -85,9 +84,11 @@ pub struct Auction {
     pub last_price: u64,
     /// when the current descent began: the last fill, or `init_ds`
     pub started_at: i64,
-    /// lowest price the auction ever asks, so the most USDC paid per $DS
+    /// lowest price the auction ever asks, so the most USDC paid per $DS: an
+    /// emergency bound only, the descent follows the last fill
     pub floor_price: u64,
-    /// seconds from the start price down to the floor
+    /// seconds of each leg of the descent: the bid at most doubles every leg past
+    /// the last fill's price
     pub duration: i64,
     /// most USDC a single fill may take
     pub lot: u64,

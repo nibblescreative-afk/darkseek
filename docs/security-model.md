@@ -77,10 +77,11 @@ below. Every change is an event on the program's history. The program cannot
 tell a copycat token from the real $DS when `init_ds` runs; it only checks that
 the supply is fixed. Check that `config.ds_mint` is the published $DS mint
 (`npm run verify -- config` does). The auction settings `init_ds` records are
-bounded by the program from v0.4.0: the floor at least a thousandth of the
-genesis price, a descent of one hour to seven days, a lot of at most
-100,000 USDC, a first target of at most 1,000,000 USDC; `npm run verify --
-config` checks them too.
+bounded by the program from v0.4.0: a floor above zero and at most the genesis
+price, legs of six hours to seven days, a lot of at most 100,000 USDC, a first
+target of at most 1,000,000 USDC; `npm run verify -- config` checks them too.
+Whatever the floor, past the last fill the auction's bid at most doubles every
+leg, so no setting lets anyone empty the pools at an absurd price in one go.
 
 ## The game server
 
@@ -203,13 +204,16 @@ of its findings; until a deployment runs v0.4.0, the v0.3.0 limits apply to it.
 | `lock_stake` on a settled room accepts any higher round number, so the game server key could leave a room with no round after it | only the next round number |
 | Only the game server can give a lobby stake back, and each lock or unlock restarts the stale clock | the seat's owner can leave on their own after 30 minutes of the lobby forming (`leave_seat`) |
 | Back to back fills each restart the price at only 1.5 times the last | a fill within ten minutes of the one before restarts it at 3 times |
+| The price stops at a fixed floor after one descent, so while the market is above that cap nobody sells and the pools wait | no fixed rate: the descent follows the last fill, and past it the bid at most doubles every leg of six hours or more |
 | What waited for stakers goes in full to whoever is staked at the next round start | at most a tenth of it goes out at each round start |
 | A vault can be opened for the all zero key, which marks empty seats | refused |
 
 Still true in v0.4.0: the session's daily cap is per UTC day (up to twice the
 cap within a few seconds around midnight UTC); the auction has no price
 oracle, so a sudden fall in the price of $DS still costs the pools something
-before the bid catches up (less than before); under an active session the game
+before the bid catches up (less than before), and when nobody else sells for
+hours a lone seller can wait while the bid doubles every leg past the market;
+under an active session the game
 server can give a lobby stake back and lock it again in a fresh lobby, against
 the daily cap, until the player revokes the session; the program cannot tell
 whose wallets sit in a room.

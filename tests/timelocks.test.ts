@@ -1,6 +1,6 @@
 // Paths that open only after time passes, run in LiteSVM so the clock can be
 // moved: stale rounds anyone can unwind, session expiry and the daily cap,
-// vesting, and the auction's descent to its floor.
+// vesting, and the auction's descent leg by leg.
 //
 // Run: scripts/build-program.sh && npx tsx --test tests/timelocks.test.ts
 
@@ -20,29 +20,34 @@ const keys = (ks: Keypair[]) => ks.map((k) => k.publicKey);
 before(async () => {
   const admin = Keypair.generate();
   chain = new SvmChain(admin.publicKey);
-  w = await new World(chain, admin).setup({ ds: { ...DEFAULT_DS_ARGS, duration: 3_600n } });
+  w = await new World(chain, admin).setup({ ds: { ...DEFAULT_DS_ARGS, duration: 21_600n } });
   stranger = Keypair.generate();
   await chain.airdrop(stranger.publicKey, 1);
 });
 
-test('the auction price falls in a straight line to the floor; each fill restarts it at 1.5x', async () => {
+test('the auction follows the last fill: each fill restarts it at 1.5x, then the bid at most doubles every leg, never past the floor', async () => {
   const ten = await w.players(10, 50n * U);
   for (let r = 1n; r <= 3n; r++) await w.play(5, r, keys(ten), [0, 0, 1, 1, S, S, S, S]);
   const seller = await w.player(1n * U, { ds: 100_000n * U });
   const sell = (maxDs: bigint) => chain.send([ixs.sellDs(seller.publicKey, w.usdc, w.ds, maxDs, 0n)], [w.admin, seller]);
 
   let c = await w.config();
-  await chain.advance(Number(c.auction.startedAt + 1_800n - (await chain.now())));
+  const leg = Number(c.auction.duration);
+  await chain.advance(Number(c.auction.startedAt + c.auction.duration / 2n - (await chain.now())));
   const half = auctionPrice(c.auction, await chain.now());
-  assert.equal(half, (150n * U + U) / 2n, 'halfway down from 150 to the floor of 1');
+  assert.equal(half, 100n * U, 'halfway through the first leg, from 150 down to 50: the genesis price');
   const a = eventOf(await sell(10n * U), 'Buyback');
   assert.equal(a.price, half);
 
   c = await w.config();
   assert.equal(c.auction.lastPrice, half);
   assert.equal(auctionPrice(c.auction, await chain.now()), (half * 3n) / 2n, 'restarted at 1.5x the fill');
-  await chain.advance(3_600 * 5);
-  assert.equal(auctionPrice(c.auction, await chain.now()), U, 'resting at the floor');
+  await chain.advance(leg);
+  assert.equal(auctionPrice(c.auction, await chain.now()), half / 2n, 'a leg later the program bids twice the last fill');
+  await chain.advance(leg);
+  assert.equal(auctionPrice(c.auction, await chain.now()), half / 4n, 'and twice that a leg after');
+  await chain.advance(leg * 5);
+  assert.equal(auctionPrice(c.auction, await chain.now()), U, 'halved under the floor of 1: resting there');
   const b = eventOf(await sell(1_000n * U), 'Buyback');
   assert.equal(b.price, U);
   assert.equal(b.ds as bigint, b.usdc as bigint, 'at the floor one $DS buys one USDC, the most the program ever pays');
