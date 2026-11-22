@@ -2,7 +2,8 @@
 
 What you can check without trusting anyone at DarkSeek, and how. You need Node
 22 and this repository; the program checks also use Docker and
-[solana-verify](https://github.com/Ellipsis-Labs/solana-verifiable-build).
+[solana-verify](https://github.com/Ellipsis-Labs/solana-verifiable-build)
+(0.5.2, the version the release workflow uses).
 
 [deployments.md](deployments.md) lists every official deployment: its
 program id, mints, upgrade authority and release. Without `--program`, the
@@ -24,12 +25,19 @@ attaches the SDK as a tarball, so the same command runs without cloning:
 Releases are built with a verifiable build: the program is compiled inside a
 pinned Docker image, so anyone who builds the same commit gets the same bytes.
 
+Releases after v0.4.1 are SBPF v3, built with `--arch v3`. Releases up to
+v0.4.1 are SBPF v0: to check one of those, leave `--arch v3` out of the
+commands below. Once SIMD-0500 is active the clusters refuse to deploy SBPF v0,
+v1 and v2 programs, upgrades included; a program already deployed keeps running
+and can be upgraded to SBPF v3.
+
 Compare a deployed program with a tagged commit, from scratch:
 
 ```sh
 solana-verify verify-from-repo --url https://api.devnet.solana.com \
   --program-id <program id> \
   --library-name darkseek_vault \
+  --arch v3 \
   --base-image solanafoundation/solana-verifiable-build:4.3.0@sha256:12fd4c0a0790f0fc41ef74b0cdb6bccc167ba6137eb1adb749bac649481c86bd \
   --commit-hash <the release tag's commit> \
   https://github.com/nibblescreative-afk/darkseek
@@ -38,8 +46,10 @@ solana-verify verify-from-repo --url https://api.devnet.solana.com \
 Or compare hashes yourself:
 
 ```sh
-solana-verify build --library-name darkseek_vault \
+solana-verify build --library-name darkseek_vault --arch v3 \
   --base-image solanafoundation/solana-verifiable-build:4.3.0@sha256:12fd4c0a0790f0fc41ef74b0cdb6bccc167ba6137eb1adb749bac649481c86bd
+# or the same build through the repository's script: scripts/build-program.sh --verifiable
+scripts/sbpf-version.sh target/deploy/darkseek_vault.so   # SBPF v3 (e_machine 247, e_flags 3)
 solana-verify get-executable-hash target/deploy/darkseek_vault.so
 solana-verify get-program-hash --url https://api.devnet.solana.com <program id>
 # without solana-verify: the same hash from the SDK
@@ -60,7 +70,7 @@ Each tagged release has these assets:
 
 | Asset | What |
 |---|---|
-| `darkseek_vault.so` | the program, from the verifiable build |
+| `darkseek_vault.so` | the program, from the verifiable build (SBPF v3 after v0.4.1) |
 | `darkseek_vault.json` | the IDL |
 | `darkseek-sdk-<version>.tgz` | the SDK, as `npm pack` produced it |
 | `SHA256SUMS` | sha256 of every asset above |

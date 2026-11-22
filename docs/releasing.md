@@ -11,7 +11,10 @@ every step leaves something anyone can check.
   the SDK and the IDL disagree.
 - Update `CHANGELOG.md`: what changed onchain, what the game server must do
   differently, and any change to the docs' numbers.
-- Merge to `main` with CI green.
+- Merge to `main` with CI green. The Validator workflow builds the program the
+  way the release will and runs every test on those bytes; its "Program build"
+  notice gives the program hash, size and SBPF version, so the release hash is
+  known before the tag.
 
 ## 2. Tag
 
@@ -22,8 +25,10 @@ git push origin v0.2.0
 
 The `release` workflow then:
 
-1. builds the program with `solana-verify build` in the pinned image
-   (`solanafoundation/solana-verifiable-build:4.3.0@sha256:12fd4c...86bd`);
+1. builds the program with `scripts/build-program.sh --verifiable`, which runs
+   `solana-verify build --arch v3` in the image pinned there
+   (`solanafoundation/solana-verifiable-build:4.3.0@sha256:12fd4c...86bd`) and
+   fails unless the program is SBPF v3;
 2. builds the IDL and checks it matches the committed one;
 3. runs the SDK tests and packs the SDK (`npm pack`);
 4. writes `SHA256SUMS` for the program, the IDL and the SDK tarball;
@@ -53,7 +58,16 @@ scripts/verify-release.sh v0.2.0 --web https://<site>
 The owner deploys with their own wallet; anything with real money goes
 through the multisig.
 
+Releases after v0.4.1 are SBPF v3; v0.4.1 and earlier are SBPF v0. Once
+SIMD-0500 is active the clusters refuse to deploy SBPF v0, v1 and v2 programs,
+upgrades included. A deployed SBPF v0 program still upgrades in place to an
+SBPF v3 build, keeping its program id and accounts (`tests/upgrade.test.ts`
+does it from each release a cluster runs). The program
+data must be at least as large as the new `.so`; if it is not, extend it first
+(`solana program extend`), in an earlier slot than the upgrade.
+
 ```sh
+scripts/sbpf-version.sh darkseek_vault.so                              # SBPF v3 (e_machine 247, e_flags 3)
 solana program write-buffer darkseek_vault.so --url <cluster>          # from the release asset
 solana program set-buffer-authority <buffer> --new-buffer-authority <multisig vault>
 ```

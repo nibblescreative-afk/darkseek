@@ -7,6 +7,25 @@
   was extended by 14,672 bytes (the v0.4.1 build is longer than v0.3.0's).
   Every vault, room and setting stayed as it was. Devnet still runs v0.3.0.
 
+### Build
+
+- The program is built as SBPF v3. Releases up to 0.4.1 are SBPF v0, and once
+  SIMD-0500 is active the clusters refuse to deploy SBPF v0, v1 and v2
+  programs, upgrades included. The release build is still `solana-verify
+  build` in the same image, pinned by the same digest, now with `--arch v3`
+  through `scripts/build-program.sh --verifiable`; it fails unless the program
+  is SBPF v3 (`scripts/sbpf-version.sh`). Local builds pass `--arch v3` too.
+- The source does not change. Its SBPF v3 build is 591,656 bytes (0.4.1:
+  622,880), so it fits the program accounts on devnet and testnet without an
+  extend, and it uses about as many compute units as before.
+- The Validator workflow tests the bytes a release would ship: it builds the
+  program like the release workflow and reports its hash and size. Its upgrade
+  test goes through the loader's Upgrade instruction, from v0.3.0 and from
+  0.4.1.
+- Verifying a release after 0.4.1 needs `--arch v3` (docs/verify.md).
+
+The game server changes nothing: same instructions, accounts, events and errors.
+
 ## 0.4.1 (2026-11-22)
 
 The program, the SDK and the indexer of 0.4.0, released again with their build

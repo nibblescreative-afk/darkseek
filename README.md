@@ -180,7 +180,8 @@ Requirements: Rust (stable), the Agave CLI 4.4.1 (`cargo build-sbf`,
 
 ```sh
 npm ci
-scripts/build-program.sh        # target/deploy/darkseek_vault.so
+scripts/build-program.sh        # target/deploy/darkseek_vault.so, SBPF v3
+scripts/build-program.sh --verifiable   # the same, the way releases are built (solana-verify, Docker)
 npm test                        # SDK unit tests
 npm run test:program            # Rust unit tests, then the program on a local validator and in LiteSVM
 npm run test:indexer            # the indexer against a local validator
