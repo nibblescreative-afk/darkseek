@@ -1,6 +1,14 @@
 # Changelog
 
-## 0.4.0 (unreleased)
+## 0.4.1 (2026-11-22)
+
+The program, the SDK and the indexer of 0.4.0, released again with their build
+files: the GitHub release of 0.4.0 was published without them (only its source
+code archives), and a published release cannot take files afterwards. Nothing
+changed in the code but the version numbers; everything under 0.4.0 below
+applies. Deploy and verify 0.4.1.
+
+## 0.4.0 (2026-11-22)
 
 The program changes for every finding of the internal review of v0.3.0
 (docs/audits/2026-11-21-internal-review.md), with what came after v0.3.0: the

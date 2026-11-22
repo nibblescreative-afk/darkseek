@@ -1,6 +1,6 @@
 {
   "name": "@darkseek/sdk",
-  "version": "0.4.0",
+  "version": "0.4.1",
   "description": "TypeScript SDK for DarkSeek, the Web3 hide and seek game on Solana: read, build and verify everything its vault program does onchain",
   "license": "BUSL-1.1",
   "type": "module",

@@ -2,7 +2,7 @@
   "address": "DarkHJqM8GMmCu7BWko6HMG4YgJgZ7jeEr2Qe967e5sE",
   "metadata": {
     "name": "darkseek_vault",
-    "version": "0.4.0",
+    "version": "0.4.1",
     "spec": "0.1.0",
     "description": "DarkSeek vault program: player vaults, room escrow and settlement, the fee split, $DS staking, buyback and vesting",
     "repository": "https://github.com/nibblescreative-afk/darkseek"
