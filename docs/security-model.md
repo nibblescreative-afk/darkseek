@@ -197,6 +197,8 @@ not an external audit) found no way for a player, an outsider or the game
 server to take funds beyond what this page concedes, and the payout and fee
 arithmetic sound to the base unit. Release v0.4.0 changes the program for each
 of its findings; until a deployment runs v0.4.0, the v0.3.0 limits apply to it.
+Testnet runs it since 2026-11-22 (release v0.4.1, the same code with its build
+files); devnet still runs v0.3.0.
 
 | v0.3.0 | v0.4.0 |
 |---|---|

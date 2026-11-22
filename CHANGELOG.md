@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- Testnet runs release v0.4.1 since 2026-11-22 11:00 UTC: the owner's wallet,
+  the upgrade authority, signed the upgrade in place, after the program account
+  was extended by 14,672 bytes (the v0.4.1 build is longer than v0.3.0's).
+  Every vault, room and setting stayed as it was. Devnet still runs v0.3.0.
+
 ### Build
 
 - The program is built as SBPF v3. Releases up to 0.4.1 are SBPF v0, and once
