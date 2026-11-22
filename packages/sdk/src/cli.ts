@@ -4,7 +4,7 @@
 
 import { readFileSync } from 'node:fs';
 import { Connection, PublicKey } from '@solana/web3.js';
-import { DEPLOYMENTS, PROGRAM_ID, type Cluster } from './constants.js';
+import { DEPLOYMENTS, MAINNET_USDC_MINT, PROGRAM_ID, type Cluster } from './constants.js';
 import { checkCharacterNft, checkDsMint, checkSolvency, configChecks, executableHash, fetchConfig, fetchProgramInfo, isUnset, toReport, type Check, type Report } from './verify.js';
 import { accountUrl } from './explorer.js';
 import { checkRounds } from './rounds.js';
@@ -70,7 +70,8 @@ async function main(): Promise<number> {
   if (!programArg && !official && !local) throw new Error(`no official deployment on ${cluster} yet: pass --program <id>`);
   const programId = new PublicKey(programArg ?? official?.programId ?? local!);
   const source = programArg ? 'given' : official ? 'official deployment' : 'the id in the source, on a local validator';
-  const usdcMint = str('usdc-mint') ?? (programArg ? undefined : official?.usdcMint.toBase58());
+  // on mainnet the stake token is Circle's USDC, whichever program is checked
+  const usdcMint = str('usdc-mint') ?? (programArg ? undefined : official?.usdcMint.toBase58()) ?? (cluster === 'mainnet-beta' ? MAINNET_USDC_MINT.toBase58() : undefined);
   const dsMint = str('ds-mint') ?? (programArg ? undefined : official?.dsMint?.toBase58());
   const sections: [string, Report][] = [];
 

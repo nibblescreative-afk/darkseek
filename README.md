@@ -185,6 +185,7 @@ npm test                        # SDK unit tests
 npm run test:program            # Rust unit tests, then the program on a local validator and in LiteSVM
 npm run test:indexer            # the indexer against a local validator
 npx tsx --test tests/invariants.test.ts   # fuzzing: random instruction sequences, books checked after every step
+DS_PREVIOUS_SO=<release .so> npx tsx --test tests/upgrade.test.ts   # an upgrade in place from that release
 scripts/build-idl.sh            # programs/darkseek-vault/idl/darkseek_vault.json
 ```
 

@@ -99,16 +99,34 @@ test('staking rewards are never overpaid', () => {
   assert.ok(paidIn - owed - carry / REWARD_SCALE <= 900n);
 });
 
-test('auction: 1.5x the last fill, straight down to the floor', () => {
+test('auction: 1.5x the last fill, then legs that at most double the bid each, down to the floor at most', () => {
   const a: AuctionState = { lastPrice: 100n * U, startedAt: 1_000n, floorPrice: U, duration: 600n, lot: 1_000n * U, minFill: U };
   assert.equal(auctionPrice(a, 1_000n), 150n * U);
   assert.equal(auctionPrice(a, 900n), 150n * U);
-  assert.equal(auctionPrice(a, 1_300n), 150n * U - (149n * U) / 2n);
-  assert.equal(auctionPrice(a, 1_600n), U);
+  assert.equal(auctionPrice(a, 1_300n), 100n * U, 'halfway through the first leg: the last fill');
+  assert.equal(auctionPrice(a, 1_600n), 50n * U, 'end of the first leg: twice the bid of the last fill');
+  assert.equal(auctionPrice(a, 2_200n), 25n * U);
+  assert.equal(auctionPrice(a, 1_000n + 7n * 600n), U, 'halved under the floor: it rests there');
   assert.equal(secondsUntilPrice(a, 1_000n, 150n * U), 0n);
-  const t = secondsUntilPrice(a, 1_000n, 100n * U)!;
-  assert.ok(auctionPrice(a, 1_000n + t) <= 100n * U && auctionPrice(a, 1_000n + t - 1n) > 100n * U);
   assert.equal(secondsUntilPrice(a, 1_000n, U / 2n), null);
+  // the time to any price agrees with the curve, in every leg
+  for (const target of [149n * U, 100n * U, 50n * U, 49n * U, 30n * U, 12n * U, 3n * U, U + 1n, U]) {
+    for (const now of [1_000n, 1_123n, 1_700n]) {
+      const t = secondsUntilPrice(a, now, target);
+      assert.ok(t !== null, `reachable ${target}`);
+      assert.ok(auctionPrice(a, now + t) <= target, `at ${now + t} the price is ${target} or less`);
+      if (t > 0n) assert.ok(auctionPrice(a, now + t - 1n) > target, `not a second earlier (${target} from ${now})`);
+    }
+  }
+});
+
+test('auction with no floor: a day after the last fill the bid is at most 16 times it', () => {
+  const a: AuctionState = { lastPrice: 300_000n * U, startedAt: 0n, floorPrice: 1n, duration: 21_600n, lot: 1_000n * U, minFill: U };
+  assert.equal(auctionPrice(a, 4n * 21_600n), (300_000n * U) >> 4n);
+  assert.equal(auctionPrice(a, 64n * 21_600n), 1n);
+  assert.equal(auctionPrice(a, 10n ** 15n), 1n);
+  const t = secondsUntilPrice(a, 0n, 1n)!;
+  assert.ok(auctionPrice(a, t) === 1n && auctionPrice(a, t - 1n) > 1n);
 });
 
 test('auction fill: both pools in proportion, capped by the lot, rounded for the program', () => {

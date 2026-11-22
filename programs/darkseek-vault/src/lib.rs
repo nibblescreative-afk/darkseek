@@ -10,16 +10,20 @@
 //!    who approved a session, within that session's daily cap, refund it, and
 //!    report a round's outcome. The program computes every payout from the
 //!    published rules, out of that room's stakes only.
-//!  * A round starts only when all ten seats are staked by players. The house
-//!    never plays.
+//!  * A round starts only when all ten seats are staked. (The program cannot tell
+//!    whose wallets those are; that the house never plays is the game's promise.)
 //!  * The 10% fee is split by fixed shares: $DS stakers, players who lost money
 //!    (paid in $DS), the buyback (buys $DS and burns it) and the treasury. The
-//!    admin can only ever take the treasury's share.
+//!    admin can only ever take the treasury's share. Until $DS is recorded the
+//!    whole fee goes to the treasury, so the other three pools hold nothing that
+//!    the choice of the $DS mint could hand away.
 //!  * The buyback and rebate pools leave custody only through a public
 //!    descending price auction that anyone can fill. The buyback spends a fixed
 //!    USDC target at a time, set once at launch and lowered by 2% after each
 //!    round; the $DS it buys is burned in the same instruction.
-//!  * Any round left unsettled for two hours can be unwound by anyone.
+//!  * Any round left unsettled for two hours can be unwound by anyone, and a
+//!    seated player can leave a lobby that has been forming for 30 minutes on
+//!    their own, with their whole stake.
 
 use anchor_lang::prelude::*;
 use anchor_spl::token::{self, Mint, Token, TokenAccount, TransferChecked};
@@ -64,7 +68,9 @@ pub struct InitArgs {
 pub struct DsArgs {
     /// reference price until the first fill, in $DS base units per whole USDC
     pub genesis_price: u64,
+    /// lowest price the auction ever asks: an emergency bound, 1 for none
     pub floor_price: u64,
+    /// seconds of each leg of the descent, six hours to seven days
     pub duration: i64,
     pub lot: u64,
     pub min_fill: u64,
@@ -143,16 +149,19 @@ pub mod darkseek_vault {
 
     /// Records the $DS mint, the buyback target and the auction's parameters,
     /// once. The mint, SPL Token or Token 2022, must have a fixed supply (no mint
-    /// authority, no freeze authority), six decimals and no extension but
-    /// metadata. Nothing recorded here can change later.
+    /// authority, no freeze authority), six decimals, at most one billion
+    /// tokens and no extension but metadata, as pump.fun creates its coins.
+    /// Nothing recorded here can change later.
     pub fn init_ds(ctx: Context<InitDs>, args: DsArgs) -> Result<()> {
         let m = &ctx.accounts.ds_mint;
         require!(m.mint_authority.is_none() && m.freeze_authority.is_none(), VaultError::DsNotFixed);
         require!(m.decimals == DS_DECIMALS, VaultError::BadParams);
+        // pump.fun's one billion, or less after burns; a Mayhem mode coin has two billion
+        require!(m.supply > 0 && m.supply <= DS_TOTAL_SUPPLY, VaultError::DsSupply);
         check_mint_extensions(&m.to_account_info())?;
-        require!(args.floor_price > 0 && args.genesis_price >= args.floor_price, VaultError::BadParams);
-        require!(args.duration > 0 && args.min_fill > 0 && args.lot >= args.min_fill, VaultError::BadParams);
-        require!(args.buyback_target > 0, VaultError::BadParams);
+        // bounded settings: a floor above zero and at most the genesis price, legs of six hours to a
+        // week, a lot of at most 100 000 USDC, a first target of at most 1 000 000 USDC
+        require!(ds_args_ok(&args, ctx.accounts.config.usdc_unit()), VaultError::BadParams);
         let now = Clock::get()?.unix_timestamp;
         let c = &mut ctx.accounts.config;
         require!(!c.ds_ready(), VaultError::DsAlreadySet);
@@ -198,6 +207,8 @@ pub mod darkseek_vault {
 
     /// Creates `owner`'s vault. Anyone may pay for it; the owner need not sign.
     pub fn open_vault(ctx: Context<OpenVault>) -> Result<()> {
+        // empty seats are marked by the all zero key: no vault ever belongs to it
+        require_keys_neq!(ctx.accounts.owner.key(), Pubkey::default(), VaultError::BadParams);
         let v = &mut ctx.accounts.vault;
         v.owner = ctx.accounts.owner.key();
         v.bump = ctx.bumps.vault;
@@ -271,19 +282,26 @@ pub mod darkseek_vault {
         let r = &mut ctx.accounts.room;
         let v = &mut ctx.accounts.vault;
         require!((slot as usize) < SEATS, VaultError::BadSlot);
+        require_keys_neq!(v.owner, Pubkey::default(), VaultError::BadParams);
+        // only ever the next round number: a higher one would leave the room with no round after it
+        let next = r.round.checked_add(1).ok_or(VaultError::WrongRound)?;
         match r.status {
             STATUS_SETTLED => {
-                require!(round > r.round, VaultError::WrongRound);
+                require!(round == next, VaultError::WrongRound);
                 r.reset(round);
             }
             STATUS_OPEN => {
                 if round != r.round {
-                    // a fresh lobby may skip ahead (the game server restarted, say)
-                    require!(round > r.round && r.seats.iter().all(|s| s.is_empty()), VaultError::WrongRound);
+                    // a lobby nobody sits in may move on to the next round (a start that never landed, say)
+                    require!(round == next && r.seats.iter().all(|s| s.is_empty()), VaultError::WrongRound);
                     r.reset(round);
                 }
             }
             _ => return err!(VaultError::RoundRunning),
+        }
+        // the first seat in an empty room: the lobby's clock (for leaving it on one's own) starts now
+        if r.seats.iter().all(|s| s.is_empty()) {
+            r.started_at = now;
         }
         require!(r.seats[slot as usize].is_empty(), VaultError::SeatTaken);
         require!(!r.seats.iter().any(|s| s.owner == v.owner), VaultError::AlreadySeated);
@@ -315,8 +333,30 @@ pub mod darkseek_vault {
         Ok(())
     }
 
+    /// A seated player leaves an open lobby on their own, with their whole stake,
+    /// once the lobby has been forming for `LEAVE_AFTER_SECS`. While they stay
+    /// seated the room is never empty, so no lock or unlock restarts that clock;
+    /// only their session lets the game server seat them again in a fresh lobby.
+    pub fn leave_seat(ctx: Context<LeaveSeat>, round: u64, slot: u8) -> Result<()> {
+        let now = Clock::get()?.unix_timestamp;
+        let r = &mut ctx.accounts.room;
+        let v = &mut ctx.accounts.vault;
+        require!(r.status == STATUS_OPEN && r.round == round, VaultError::WrongRound);
+        require!((slot as usize) < SEATS, VaultError::BadSlot);
+        let seat = r.seats[slot as usize];
+        require!(!seat.is_empty() && seat.owner == v.owner, VaultError::BadSlot);
+        require!(now >= r.started_at.saturating_add(LEAVE_AFTER_SECS), VaultError::TooEarly);
+        v.locked = v.locked.checked_sub(seat.stake).ok_or(VaultError::Overflow)?;
+        v.balance = v.balance.checked_add(seat.stake).ok_or(VaultError::Overflow)?;
+        r.pot -= seat.stake;
+        r.seats[slot as usize] = Seat::default();
+        r.updated_at = now;
+        emit!(SeatLeft { room: r.index, round, slot, owner: v.owner, stake: seat.stake });
+        Ok(())
+    }
+
     /// All ten seats are staked: the round goes live, the fee is taken seat by
-    /// seat and split by the fixed shares.
+    /// seat and split by the fixed shares (all of it to the treasury until $DS is recorded).
     pub fn start_round(ctx: Context<RoomOp>, round: u64) -> Result<()> {
         let now = Clock::get()?.unix_timestamp;
         let c = &mut ctx.accounts.config;
@@ -330,7 +370,7 @@ pub mod darkseek_vault {
             // seat by seat, so every seat of a role keeps the same net stake
             fee = fee.checked_add(fee_on(seat.stake, c.fee_bps)).ok_or(VaultError::Overflow)?;
         }
-        let parts = split_fee(fee, &c.split);
+        let parts = fee_parts(fee, &c.split, c.ds_ready());
         c.staker_pool = c.staker_pool.checked_add(parts.stakers).ok_or(VaultError::Overflow)?;
         (c.reward_per_ds, c.reward_carry) = accrue_rewards(c.reward_per_ds, c.reward_carry, c.ds_staked, parts.stakers)?;
         c.rebate_pool = c.rebate_pool.checked_add(parts.rebate).ok_or(VaultError::Overflow)?;
@@ -519,7 +559,10 @@ pub mod darkseek_vault {
     /// the pool holds the whole target and spends exactly the target. $DS bought
     /// for the buyback is burned here and now; $DS bought for rebates joins the
     /// reserve. When a round's budget is spent, the next target is 98% of this
-    /// one. The price then restarts at 1.5 times this fill.
+    /// one. The price then restarts at 1.5 times this fill, or 3 times when this
+    /// fill came within ten minutes of the one before, and descends from there
+    /// (`auction_price`): the bid follows the market, at most doubling every leg
+    /// past this fill's price.
     pub fn sell_ds(ctx: Context<SellDs>, max_ds: u64, min_usdc: u64) -> Result<()> {
         let now = Clock::get()?.unix_timestamp;
         let c = &ctx.accounts.config;
@@ -560,7 +603,10 @@ pub mod darkseek_vault {
                 c.buyback_target = next_buyback_target(c.buyback_target);
             }
         }
-        c.auction.last_price = price;
+        // a fill soon after the one before restarts the price twice as far up
+        let refill = c.totals.buyback_spent > 0 || c.totals.rebate_spent > 0;
+        let quick = refill && now < c.auction.started_at.saturating_add(QUICK_REFILL_SECS);
+        c.auction.last_price = next_reference_price(price, quick);
         c.auction.started_at = now;
         let t = &mut c.totals;
         t.buyback_spent = t.buyback_spent.checked_add(fill.from_buyback).ok_or(VaultError::Overflow)?;

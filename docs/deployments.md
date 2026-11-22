@@ -36,8 +36,8 @@ bought 3% of the supply (30,000,000 tokens) for 100 test USDC:
 |---|---|
 | First buyback target | 50 test USDC, half the assumed launch buy |
 | Genesis price | 300,000 tokens per USDC (`300000000000` base units) |
-| Floor price | 300 tokens per USDC, a thousandth of the genesis price |
-| Auction | 6 hours from the start price to the floor; at most 1,000 USDC and at least 1 USDC per fill |
+| Floor price | 300 tokens per USDC, a thousandth of the genesis price; from v0.4.0 an emergency bound only |
+| Auction | legs of 6 hours (v0.3.0: one leg from the start price to the floor; from v0.4.0 the bid at most doubles every leg past the last fill); at most 1,000 USDC and at least 1 USDC per fill |
 
 Check it yourself, from a clone of this repository:
 
@@ -87,12 +87,13 @@ $DS is created on pump.fun. At launch this page lists:
 | | |
 |---|---|
 | $DS mint | the contract address, also shown on the site |
-| Token program | SPL Token or Token 2022, as pump.fun created it |
+| Token program | Token 2022, as pump.fun creates every coin now (`CreateV2`); the program also accepts SPL Token |
+| Mode | normal: a coin in pump.fun's Mayhem mode has two billion tokens, and `init_ds` refuses it |
 | Launch buy wallet | the team's wallet that bought 3% of the supply on the bonding curve |
 | Launch buy transaction | its signature |
 | Launch buy in USDC | what the buy cost, converted to USDC, with the price source and time used |
 | First buyback target | half of that, as recorded by `init_ds` |
-| Auction | genesis price (the $DS the launch buy got per USDC), floor, duration, lot, minimum fill |
+| Auction | genesis price (the $DS the launch buy got per USDC), floor (one base unit: no fixed limit), leg duration, lot, minimum fill |
 | Team lock | if the team locks any of its tokens: the lock account, cliff and end |
 
 `npm run verify -- config --program <id> --ds-mint <mint> --launch-buy-usdc <units>`
@@ -131,7 +132,11 @@ of them ([verify.md](verify.md)).
 2. an external audit of the program, published in this repository;
 3. the upgrade authority and the admin held by a Squads multisig (3 of 5, 48
    hour timelock), listed here;
-4. $DS launched on pump.fun and the launch details above listed here.
+4. $DS launched on pump.fun in normal mode and the launch details above
+   listed here;
+5. the stake token is Circle's USDC, `EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v`
+   (SPL Token, six decimals); on mainnet `npm run verify -- config` compares the
+   recorded mint with it.
 
 `scripts/test-ds-mint.ts` makes a token shaped like a pump.fun mint for local
 and devnet tests only; it never creates $DS.

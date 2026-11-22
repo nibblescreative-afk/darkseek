@@ -179,18 +179,26 @@ export class SvmChain implements Chain {
   readonly svm = new LiteSVM();
 
   /** Loads the program as upgradeable with `upgradeAuthority`, like `ValidatorChain.start`. */
-  constructor(upgradeAuthority: PublicKey) {
+  constructor(private readonly upgradeAuthority: PublicKey) {
     if (!fs.existsSync(PROGRAM_SO)) throw new Error('build the program first: scripts/build-program.sh');
-    this.svm.addProgramFromFile(address(PROGRAM_ID.toBase58()), PROGRAM_SO);
+    this.deploy(PROGRAM_SO);
+    this.setTime(BigInt(Math.floor(Date.now() / 1000)));
+  }
+
+  /**
+   * Puts the program built in `file` at the program's address, as an upgrade by the
+   * upgrade authority does: every account the program owns keeps what it holds.
+   */
+  deploy(file: string): void {
+    this.svm.addProgramFromFile(address(PROGRAM_ID.toBase58()), file);
     // LiteSVM deploys with no upgrade authority; set ours in the program data header
     const pdKey = address(pda.programData(PROGRAM_ID).toBase58());
     const acc = this.svm.getAccount(pdKey);
     if (!acc.exists) throw new Error('program data account missing');
     const data = new Uint8Array(acc.data);
     data[12] = 1;
-    data.set(upgradeAuthority.toBytes(), 13);
+    data.set(this.upgradeAuthority.toBytes(), 13);
     this.svm.setAccount({ ...acc, data });
-    this.setTime(BigInt(Math.floor(Date.now() / 1000)));
   }
 
   async send(ixs: TransactionInstruction[], signers: Keypair[], feePayer = signers[0]): Promise<SentTx> {

@@ -206,6 +206,13 @@ export const EVENT_LAYOUTS = {
     ['owner', 'pubkey'],
     ['stake', 'u64'],
   ],
+  SeatLeft: [
+    ['room', 'u8'],
+    ['round', 'u64'],
+    ['slot', 'u8'],
+    ['owner', 'pubkey'],
+    ['stake', 'u64'],
+  ],
   RoundStarted: [
     ['room', 'u8'],
     ['round', 'u64'],
@@ -360,6 +367,10 @@ export const INSTRUCTION_ARGS = {
     ['slot', 'u8'],
   ],
   unlock_stake: [
+    ['round', 'u64'],
+    ['slot', 'u8'],
+  ],
+  leave_seat: [
     ['round', 'u64'],
     ['slot', 'u8'],
   ],

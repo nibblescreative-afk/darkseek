@@ -22,6 +22,8 @@ pub const DAY: i64 = 86_400;
 pub const MAX_SESSION_SECS: i64 = 90 * DAY;
 /// After this long without progress anyone may unwind a round.
 pub const STALE_AFTER_SECS: i64 = 2 * 3_600;
+/// A seated player may leave an open lobby on their own once it has been forming this long.
+pub const LEAVE_AFTER_SECS: i64 = 30 * 60;
 
 pub const BPS: u64 = 10_000;
 /// Highest protocol fee the program accepts at initialization (20%).
@@ -29,10 +31,24 @@ pub const MAX_FEE_BPS: u16 = 2_000;
 
 /// $DS has six decimals and a fixed supply.
 pub const DS_DECIMALS: u8 = 6;
+/// pump.fun's supply, one billion $DS: `init_ds` refuses a mint with more (a pump.fun coin
+/// in Mayhem mode has two billion).
+pub const DS_TOTAL_SUPPLY: u64 = 1_000_000_000_000_000;
 /// Fixed point scale of the staking reward accumulator.
 pub const REWARD_SCALE: u128 = 1_000_000_000_000;
 /// A new auction starts at 1.5 times the price of the last fill.
 pub const AUCTION_RESTART_BPS: u64 = 15_000;
+/// A fill this soon after the one before counts double for the restart (3 times its price).
+pub const QUICK_REFILL_SECS: i64 = 10 * 60;
+/// Shortest and longest leg of the auction's descent that `init_ds` accepts. Past the
+/// last fill's price the bid at most doubles every leg, so at most every six hours.
+pub const MIN_AUCTION_SECS: i64 = 6 * 3_600;
+pub const MAX_AUCTION_SECS: i64 = 7 * DAY;
+/// Most USDC one fill may take, and the largest first buyback target `init_ds` accepts, in whole USDC.
+pub const MAX_LOT_USDC: u64 = 100_000;
+pub const MAX_BUYBACK_TARGET_USDC: u64 = 1_000_000;
+/// Of the stakers' USDC that waited (nobody staked, or rounding), at most a tenth goes out at each round start.
+pub const CARRY_RELEASE_DIV: u128 = 10;
 /// After each completed buyback round the next target is 98% of the last.
 pub const BUYBACK_TARGET_DECAY_BPS: u64 = 9_800;
 
@@ -62,13 +78,17 @@ impl FeeSplitBps {
 /// asks for more $DS for each USDC it pays out.
 #[derive(AnchorSerialize, AnchorDeserialize, Clone, Copy, Default, InitSpace, PartialEq, Eq, Debug)]
 pub struct Auction {
-    /// price of the last fill (the genesis price until the first fill)
+    /// the price the next descent restarts from, divided by 1.5: the last fill's price,
+    /// doubled when that fill came within `QUICK_REFILL_SECS` of the one before
+    /// (the genesis price until the first fill)
     pub last_price: u64,
     /// when the current descent began: the last fill, or `init_ds`
     pub started_at: i64,
-    /// lowest price the auction ever asks, so the most USDC paid per $DS
+    /// lowest price the auction ever asks, so the most USDC paid per $DS: an
+    /// emergency bound only, the descent follows the last fill
     pub floor_price: u64,
-    /// seconds from the start price down to the floor
+    /// seconds of each leg of the descent: the bid at most doubles every leg past
+    /// the last fill's price
     pub duration: i64,
     /// most USDC a single fill may take
     pub lot: u64,
@@ -150,7 +170,8 @@ pub struct Config {
     pub ds_staked: u64,
     /// USDC per staked $DS base unit, scaled by `REWARD_SCALE`
     pub reward_per_ds: u128,
-    /// stakers' USDC not yet in the accumulator (nobody staked, or rounding), scaled by `REWARD_SCALE`
+    /// stakers' USDC not yet in the accumulator (nobody staked, or rounding), scaled by
+    /// `REWARD_SCALE`; at most a tenth of it goes out at each round start
     pub reward_carry: u128,
     pub auction: Auction,
     pub totals: Totals,
@@ -224,6 +245,8 @@ pub struct Room {
     pub fee: u64,
     /// the part of the fee owed to this round's losers, credited at settlement
     pub rebate: u64,
+    /// when the round started; while the room is open, when its lobby began forming
+    /// (the first seat taken in an empty room), which only emptying the room resets
     pub started_at: i64,
     /// last lock, unlock or start
     pub updated_at: i64,

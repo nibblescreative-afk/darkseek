@@ -1,13 +1,13 @@
 // Paths that open only after time passes, run in LiteSVM so the clock can be
 // moved: stale rounds anyone can unwind, session expiry and the daily cap,
-// vesting, and the auction's descent to its floor.
+// vesting, and the auction's descent leg by leg.
 //
 // Run: scripts/build-program.sh && npx tsx --test tests/timelocks.test.ts
 
 import { before, test } from 'node:test';
 import assert from 'node:assert/strict';
-import { Keypair } from '@solana/web3.js';
-import { PUBLISHED, SURVIVED, STALE_AFTER_SECS, TOKEN_2022_PROGRAM_ID, TOKEN_PROGRAM_ID, ata, auctionPrice, buybackTargetAfter, decodeVesting, ixs, pda, seatStakes, splIxs, vested } from '../packages/sdk/src/index.js';
+import { Keypair, PublicKey } from '@solana/web3.js';
+import { LEAVE_AFTER_SECS, PUBLISHED, QUICK_REFILL_SECS, SURVIVED, STALE_AFTER_SECS, TOKEN_2022_PROGRAM_ID, TOKEN_PROGRAM_ID, ata, auctionPrice, buybackTargetAfter, decodeVesting, ixs, pda, seatStakes, splIxs, vested } from '../packages/sdk/src/index.js';
 import { SvmChain } from './harness/chain.js';
 import { DEFAULT_DS_ARGS, U, World, eventOf, expectError } from './harness/world.js';
 
@@ -20,29 +20,34 @@ const keys = (ks: Keypair[]) => ks.map((k) => k.publicKey);
 before(async () => {
   const admin = Keypair.generate();
   chain = new SvmChain(admin.publicKey);
-  w = await new World(chain, admin).setup({ ds: { ...DEFAULT_DS_ARGS, duration: 3_600n } });
+  w = await new World(chain, admin).setup({ ds: { ...DEFAULT_DS_ARGS, duration: 21_600n } });
   stranger = Keypair.generate();
   await chain.airdrop(stranger.publicKey, 1);
 });
 
-test('the auction price falls in a straight line to the floor; each fill restarts it at 1.5x', async () => {
+test('the auction follows the last fill: each fill restarts it at 1.5x, then the bid at most doubles every leg, never past the floor', async () => {
   const ten = await w.players(10, 50n * U);
   for (let r = 1n; r <= 3n; r++) await w.play(5, r, keys(ten), [0, 0, 1, 1, S, S, S, S]);
   const seller = await w.player(1n * U, { ds: 100_000n * U });
   const sell = (maxDs: bigint) => chain.send([ixs.sellDs(seller.publicKey, w.usdc, w.ds, maxDs, 0n)], [w.admin, seller]);
 
   let c = await w.config();
-  await chain.advance(Number(c.auction.startedAt + 1_800n - (await chain.now())));
+  const leg = Number(c.auction.duration);
+  await chain.advance(Number(c.auction.startedAt + c.auction.duration / 2n - (await chain.now())));
   const half = auctionPrice(c.auction, await chain.now());
-  assert.equal(half, (150n * U + U) / 2n, 'halfway down from 150 to the floor of 1');
+  assert.equal(half, 100n * U, 'halfway through the first leg, from 150 down to 50: the genesis price');
   const a = eventOf(await sell(10n * U), 'Buyback');
   assert.equal(a.price, half);
 
   c = await w.config();
   assert.equal(c.auction.lastPrice, half);
   assert.equal(auctionPrice(c.auction, await chain.now()), (half * 3n) / 2n, 'restarted at 1.5x the fill');
-  await chain.advance(3_600 * 5);
-  assert.equal(auctionPrice(c.auction, await chain.now()), U, 'resting at the floor');
+  await chain.advance(leg);
+  assert.equal(auctionPrice(c.auction, await chain.now()), half / 2n, 'a leg later the program bids twice the last fill');
+  await chain.advance(leg);
+  assert.equal(auctionPrice(c.auction, await chain.now()), half / 4n, 'and twice that a leg after');
+  await chain.advance(leg * 5);
+  assert.equal(auctionPrice(c.auction, await chain.now()), U, 'halved under the floor of 1: resting there');
   const b = eventOf(await sell(1_000n * U), 'Buyback');
   assert.equal(b.price, U);
   assert.equal(b.ds as bigint, b.usdc as bigint, 'at the floor one $DS buys one USDC, the most the program ever pays');
@@ -161,5 +166,47 @@ test('a lock works the same for a Token 2022 token, like a pump.fun mint with me
   await chain.advance(3 * 3_600);
   await claim();
   assert.equal(await w.tokens(ata(who.publicKey, mint.publicKey, TOKEN_2022_PROGRAM_ID)), p.total);
+});
+
+test('a seated player leaves a lobby on their own after 30 minutes, whatever the game server does (v0.4.0)', async () => {
+  const [p, q] = await w.players(2, 10n * U);
+  await w.seat(3, 1n, [p.publicKey], 2);
+  const leave = (who: Keypair, slot: number) => chain.send([ixs.leaveSeat(who.publicKey, 3, 1n, slot)], [w.admin, who]);
+  await expectError(leave(p, 2), 'TooEarly');
+  // the game server keeps locking and unlocking another seat: the lobby's clock does not restart
+  await chain.advance(LEAVE_AFTER_SECS - 120);
+  await w.seat(3, 1n, [q.publicKey], 3);
+  await chain.send([ixs.unlockStake(w.authority.publicKey, 3, q.publicKey, 1n, 3)], [w.authority]);
+  await expectError(leave(p, 2), 'TooEarly');
+  await chain.advance(121);
+  // nobody leaves a seat that is not theirs
+  await expectError(leave(q, 2), 'BadSlot');
+  const before = await w.vault(p.publicKey);
+  const left = eventOf(await leave(p, 2), 'SeatLeft');
+  assert.equal(left.stake, U / 2n, 'the whole casual Hider stake');
+  const after = await w.vault(p.publicKey);
+  assert.equal(after.balance, before.balance + U / 2n);
+  assert.equal(after.locked, before.locked - U / 2n);
+  assert.ok((await w.room(3)).seats.every((s) => s.owner.equals(PublicKey.default)));
+  await w.assertBooks('leave a lobby');
+});
+
+test('a fill right after another restarts the price at 3 times, not 1.5 (v0.4.0)', async () => {
+  const ten = await w.players(10, 50n * U);
+  await w.play(6, 1n, keys(ten), [S, S, S, S, S, S, S, S]); // a pro round: 0.70 USDC into the rebate pool
+  const seller = await w.player(1n * U, { ds: 1_000n * U });
+  const sell = (maxDs: bigint) => chain.send([ixs.sellDs(seller.publicKey, w.usdc, w.ds, maxDs, 0n)], [w.admin, seller]);
+  // the last fill was hours ago: an ordinary restart at 1.5 times
+  await chain.advance(QUICK_REFILL_SECS + 1);
+  const a = eventOf(await sell(U / 2n), 'Buyback');
+  let c = await w.config();
+  assert.equal(c.auction.lastPrice, a.price);
+  // a second fill within ten minutes: the next descent starts at 3 times its price
+  await chain.advance(60);
+  const b = eventOf(await sell(U / 2n), 'Buyback');
+  c = await w.config();
+  assert.equal(c.auction.lastPrice, (b.price as bigint) * 2n);
+  assert.equal(auctionPrice(c.auction, await chain.now()), (b.price as bigint) * 3n);
+  await w.assertBooks('quick refill');
 });
 

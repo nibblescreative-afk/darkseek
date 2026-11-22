@@ -42,7 +42,7 @@ test('the program has the instructions the docs list, and no others', () => {
   const handlers = [...program.matchAll(/pub fn (\w+)/g)].map((m) => m[1]).sort();
   assert.deepEqual(handlers, [
     'abort_stale_round', 'accept_admin', 'cancel_round', 'charge', 'claim_rebate', 'claim_rewards', 'claim_vesting',
-    'create_vesting', 'deposit', 'deposit_ds', 'init_ds', 'init_room', 'initialize', 'lock_stake', 'open_vault', 'pay',
+    'create_vesting', 'deposit', 'deposit_ds', 'init_ds', 'init_room', 'initialize', 'leave_seat', 'lock_stake', 'open_vault', 'pay',
     'propose_admin', 'sell_ds', 'set_authority', 'set_session', 'settle_round', 'stake_ds', 'start_round', 'sweep_treasury',
     'unlock_stake', 'unstake_ds', 'withdraw', 'withdraw_ds',
   ]);
@@ -80,7 +80,7 @@ test('protected counters only go down in these places', () => {
 test('who must sign, as Anchor checks it', () => {
   const ctx = fs.readFileSync(path.join(SRC, 'contexts.rs'), 'utf8');
   // the vault owner signs everything that spends from a vault
-  for (const name of ['OwnerOnly', 'Withdraw', 'Charge', 'Pay', 'WithdrawDs', 'StakeDs']) {
+  for (const name of ['OwnerOnly', 'Withdraw', 'Charge', 'Pay', 'WithdrawDs', 'StakeDs', 'LeaveSeat']) {
     const body = ctx.slice(ctx.indexOf(`pub struct ${name}<`), ctx.indexOf('}', ctx.indexOf(`pub struct ${name}<`)));
     assert.match(body, /pub owner: Signer<'info>/, `${name} needs the owner's signature`);
     assert.match(body, /seeds = \[b"vault", owner\.key\(\)\.as_ref\(\)\]/, `${name} works only on the signer's own vault`);
@@ -105,7 +105,9 @@ test('no instruction can change the fee, the split, the stakes or the $DS mint a
   }
   const auction = using(/c\.auction(\.\w+)? = /);
   assert.deepEqual(auction, ['init_ds', 'sell_ds'], 'only a fill moves the auction');
-  assert.match(fns.get('sell_ds')!, /c\.auction\.last_price = price;\s*c\.auction\.started_at = now;/);
+  assert.match(fns.get('sell_ds')!, /c\.auction\.last_price = next_reference_price\(price, quick\);\s*c\.auction\.started_at = now;/);
+  // the reference is the fill's price, or twice it for a fill that came right after another: never lower
+  assert.match(fs.readFileSync(path.join(SRC, 'rules.rs'), 'utf8'), /pub fn next_reference_price\(price: u64, quick: bool\) -> u64 \{\s*if quick \{\s*price\.saturating_mul\(2\)\s*\} else \{\s*price\s*\}/);
 });
 
 test('the buyback target is set once and can only go down by 2% per completed round', () => {
@@ -120,3 +122,36 @@ test('the buyback target is set once and can only go down by 2% per completed ro
   // init_ds runs once: it creates the $DS custody account, which cannot exist twice
   assert.match(fs.readFileSync(path.join(SRC, 'contexts.rs'), 'utf8'), /#\[account\(init, payer = admin, seeds = \[b"ds_custody"\]/);
 });
+
+test('v0.4.0: a room only ever moves to the next round, and a seated player can always get out of a lobby', () => {
+  const lock = fns.get('lock_stake')!;
+  assert.match(lock, /let next = r\.round\.checked_add\(1\)/);
+  assert.equal(lock.match(/r\.reset\(round\)/g)?.length, 2);
+  assert.equal(lock.match(/require!\(round == next/g)?.length, 2, 'both ways into a new round need exactly the next number');
+  const leave = fns.get('leave_seat')!;
+  assert.match(leave, /require!\(now >= r\.started_at\.saturating_add\(LEAVE_AFTER_SECS\), VaultError::TooEarly\)/);
+  // the lobby's clock is set only when the first seat is taken in an empty room (no lock or unlock refreshes it)
+  assert.deepEqual(using(/r\.started_at = now/), ['lock_stake', 'start_round']);
+  assert.match(lock, /if r\.seats\.iter\(\)\.all\(\|s\| s\.is_empty\(\)\) \{\s*r\.started_at = now;/);
+});
+
+test('v0.4.0: until $DS is recorded the whole fee goes to the treasury', () => {
+  assert.match(fns.get('start_round')!, /let parts = fee_parts\(fee, &c\.split, c\.ds_ready\(\)\);/);
+  assert.match(fs.readFileSync(path.join(SRC, 'rules.rs'), 'utf8'), /FeeParts \{ stakers: 0, rebate: 0, buyback: 0, treasury: fee \}/);
+  assert.match(fns.get('init_ds')!, /require!\(ds_args_ok\(&args, ctx\.accounts\.config\.usdc_unit\(\)\), VaultError::BadParams\);/);
+});
+
+test('v0.4.0: the auction follows the last fill, its bid at most doubling every leg, never under the floor', () => {
+  const rules = fs.readFileSync(path.join(SRC, 'rules.rs'), 'utf8');
+  const price = rules.slice(rules.indexOf('pub fn auction_price'), rules.indexOf('pub struct Fill'));
+  assert.match(price, /let halved = \|k: i64\| if k >= 64 \{ 0 \} else \{ a\.last_price >> k \};/);
+  assert.match(price, /let start = if leg == 0 \{ restart \} else \{ halved\(leg\) \}\.max\(a\.floor_price\);/);
+  assert.match(price, /let end = halved\(leg \+ 1\)\.max\(a\.floor_price\);/);
+  assert.match(fs.readFileSync(path.join(SRC, 'state.rs'), 'utf8'), /pub const MIN_AUCTION_SECS: i64 = 6 \* 3_600;/);
+});
+
+test('v0.4.0: $DS is recorded only with pump.fun\'s supply of one billion or less', () => {
+  assert.match(fns.get('init_ds')!, /require!\(m\.supply > 0 && m\.supply <= DS_TOTAL_SUPPLY, VaultError::DsSupply\);/);
+  assert.match(fs.readFileSync(path.join(SRC, 'state.rs'), 'utf8'), /pub const DS_TOTAL_SUPPLY: u64 = 1_000_000_000_000_000;/);
+});
+

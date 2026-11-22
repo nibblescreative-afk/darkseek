@@ -1,7 +1,8 @@
 // TEST ONLY. Makes a token shaped like a pump.fun mint, for local validators
 // and devnet tests: one billion tokens with six decimals, no freeze authority,
 // the mint authority removed in the same transaction that mints the supply,
-// and on Token 2022 the metadata stored in the mint.
+// and on Token 2022 (--token-2022, how pump.fun's CreateV2 makes every coin
+// now) the metadata stored in the mint with no update authority.
 //
 // Real $DS is created by pump.fun at launch; this script never creates it.
 // Its mint is published in docs/deployments.md.
@@ -48,6 +49,7 @@ async function main() {
             splIxs.initializeMetadataPointer(mint.publicKey, null, mint.publicKey),
             splIxs.initializeMint2(mint.publicKey, 6, payer.publicKey, program),
             splIxs.initializeTokenMetadata(mint.publicKey, payer.publicKey, payer.publicKey, meta),
+            splIxs.updateTokenMetadataAuthority(mint.publicKey, payer.publicKey, null),
           ];
         })();
   const signature = await send(

@@ -56,7 +56,9 @@ Six rooms run at once: three casual, three pro.
 A stake is locked from the player's vault when they take a seat. The fee is
 taken seat by seat when the round starts, so every Hider plays for a net stake
 of 0.45 (casual) or 2.25 (pro), and every Seeker for 1.35 or 6.75. Before the
-round starts a player can leave and get the whole stake back.
+round starts a player can leave and get the whole stake back: through the game,
+or on their own once the lobby has been forming for 30 minutes, without the
+game server.
 
 ## 3. Who gets paid
 
@@ -112,6 +114,11 @@ rounding remainder. The treasury pays for servers, network fees, development
 and audits. The admin can withdraw the treasury's share and nothing else: the
 staker, rebate and buyback pools can never reach the treasury or the team.
 
+Until $DS is recorded there are no stakers, no $DS to buy back and nothing to
+pay rebates in, so the whole fee goes to the treasury. The split above starts
+with the first round after `init_ds`. Nothing waits in the other three pools
+for a $DS mint yet to be chosen, so that choice can never hand them away.
+
 ## 5. $DS
 
 $DS is DarkSeek's token. Staked, it earns a share of every fee in USDC;
@@ -121,9 +128,14 @@ players who lose money in a round get part of the fee back in $DS.
 
 - **Created by pump.fun**: 1,000,000,000 $DS with six decimals, no mint
   authority and no freeze authority, pump.fun's standard. Nobody, the team
-  included, can mint more or freeze a holder. pump.fun creates either an SPL
-  Token mint or a Token 2022 mint with its metadata inside; the vault program
-  accepts both and refuses any other Token 2022 extension.
+  included, can mint more or freeze a holder. pump.fun now creates every coin
+  as a Token 2022 mint with its metadata inside, which nobody can change
+  afterwards (as its coins on mainnet showed in November 2026). The vault
+  program accepts that mint, or an SPL Token mint, and refuses any other
+  Token 2022 extension.
+- **Normal mode, not Mayhem mode.** A pump.fun coin in Mayhem mode has two
+  billion tokens. The vault program refuses a $DS mint with more than one
+  billion, so $DS launches in normal mode.
 - **No presale and no private allocation.** No tokens are set aside for
   anyone, the team included, and no vesting schedules are created for anyone.
 - **One launch buy.** At launch the team's wallet buys 3% of the supply on
@@ -152,7 +164,8 @@ $DS: the only $DS it pays out is $DS it bought with fee money.
 4. Credit turns into $DS at the average price the reserve paid
    (`claim_rebate`; anyone may send it and the $DS can only land in that
    player's vault). Credit the reserve cannot cover yet waits for the next
-   purchases.
+   purchases. There is no fixed rate: a player's $DS is what the pool's USDC
+   actually bought at market prices.
 
 Every credit is backed by USDC in the rebate pool or by $DS the pool already
 bought; [solvency.md](solvency.md) shows how anyone checks it.
@@ -176,8 +189,9 @@ casual round and 0.35 from each pro round.
 - Rewards are claimed into the vault's USDC balance at any time. Anyone may
   trigger the claim for a vault; the USDC can only land in that vault.
 - No lockup: unstaking is immediate.
-- While nobody stakes, the stakers' share waits in the staker pool for the
-  first stakers.
+- While nobody stakes, the stakers' share waits in the staker pool. Once
+  someone stakes, at most a tenth of what waited goes out at each round start,
+  so it reaches every staker of the next rounds, not only whoever staked first.
 
 ## 7. Buyback and burn
 
@@ -225,17 +239,28 @@ onchain, with no oracle and no operator.
   share to the reserve, then pays the seller USDC from custody. A fill pays
   from the open buyback round and from the rebate pool in proportion; the
   rebate pool buys at any time, the buyback only during a round.
-- **The price** is quoted in $DS per USDC. After each fill it restarts at 1.5
-  times the price of that fill (asking for 50% more $DS per USDC) and falls in a
-  straight line to a floor over six hours. Sellers wait until the program's bid
-  is worth taking, so fills land near the market price.
+- **The price** is quoted in $DS per USDC and follows the market, with no
+  fixed rate. After each fill it restarts at 1.5 times the price of that fill
+  (asking for 50% more $DS per USDC) and falls in straight legs of six hours:
+  the first leg ends at half that fill's price, each later leg at half the end
+  of the one before. Sellers wait until the program's bid is worth taking, so
+  fills land near the market price, wherever it goes. Past the last fill the
+  bid at most doubles every six hours: a hundredfold rise in the price of $DS
+  is caught up in under two days, while nobody can make the program pay far
+  above the market in one go. A fill that comes within ten minutes of the one
+  before restarts it at 3 times instead: after a sudden fall in the price of
+  $DS a burst of fills lifts the bid out of the way fast, instead of paying
+  above the market lot after lot.
 - **Limits.** One fill pays at most 1,000 USDC and at least 1 USDC, unless it
-  takes all that is on offer. The floor, set at launch to a thousandth of the
-  launch price in $DS per USDC, caps what the program ever pays per $DS; while
-  the market price is above that cap, nobody sells and the pools wait.
+  takes all that is on offer. The floor recorded at launch is only an
+  emergency bound, set to one base unit: no fixed limit on what the program
+  pays per $DS.
 - **Fixed rules.** The $DS mint, the first target and the auction's parameters
-  are recorded once. Nobody, the admin included, can change them, pause the
-  auction or take USDC from the pools any other way.
+  are recorded once, within bounds the program enforces: a mint with at most
+  one billion tokens, a floor above zero and at most the launch price, legs of
+  six hours to seven days, a lot of at most 100,000 USDC and a first target of
+  at most 1,000,000 USDC. Nobody, the admin included, can change them, pause
+  the auction or take USDC from the pools any other way.
 
 ## 8. Custody and solvency
 
@@ -249,7 +274,8 @@ $DS (staked, claimed rebates, the rebate reserve) in another.
   cap they chose.
 - Shop and P2P payments from a vault need the owner's own signature.
 - If the game server ever stops, anyone can return the stakes of a round that
-  made no progress for two hours.
+  made no progress for two hours, and a seated player can leave a lobby that
+  has been forming for 30 minutes on their own.
 
 The program keeps one set of books. At every moment the USDC custody holds at
 least every vault balance, every room's escrow, the treasury and the three

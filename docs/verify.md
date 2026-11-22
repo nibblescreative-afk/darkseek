@@ -95,7 +95,16 @@ the first target is half the launch buy published in deployments.md, and that
 the current target is the first one times 0.98 for every completed round,
 rounded down at each step. None of these can change without a program
 upgrade, except the game server key (`set_authority`, an event in the
-program's history).
+program's history). On mainnet the stake token must be Circle's USDC,
+`EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v`: the command compares it even
+without `--usdc-mint`.
+
+Once $DS is recorded it also checks the auction settings against the bounds
+release v0.4.0 enforces (a floor above zero and at most the genesis price, legs
+of six hours to seven days, a lot of at most 100,000 USDC, a first target of at
+most 1,000,000 USDC). Before that it notes any fee waiting in the
+staker, rebate or buyback pool: from v0.4.0 the whole fee goes to the treasury
+until $DS is recorded, so anything there came in earlier.
 
 ## 4. $DS has a fixed supply; characters are one of one
 
@@ -103,11 +112,13 @@ program's history).
 npm run verify -- ds-mint --cluster devnet --ds-mint <$DS mint>
 ```
 
-$DS is created by pump.fun, on SPL Token or on Token 2022. Either way it must
-have no mint authority (no more can ever be minted), no freeze authority
-(nobody can freeze holders), six decimals and a supply of at most
-1,000,000,000 (lower only by the buyback burn; the command prints how much has
-been burned). A Token 2022 mint may carry its metadata and no other extension.
+$DS is created by pump.fun, which now makes every coin on Token 2022 (the
+program also accepts SPL Token). Either way it must have no mint authority (no
+more can ever be minted), no freeze authority (nobody can freeze holders), six
+decimals and a supply of at most 1,000,000,000 (lower only by burns; the
+command prints how much has been burned). From v0.4.0 `init_ds` refuses a
+larger supply too, such as the two billion of a pump.fun coin in Mayhem mode.
+A Token 2022 mint may carry its metadata and no other extension.
 With the Solana CLI: `spl-token display <$DS mint>` shows the same.
 
 There are no allocations to check: the only wallet the team announces is the

@@ -15,7 +15,7 @@
     "typecheck": "npm run build -w @darkseek/sdk && npm run typecheck --workspaces && tsc -p tests/tsconfig.json --noEmit",
     "test": "npm test -w @darkseek/sdk",
     "build:program": "scripts/build-program.sh",
-    "test:program": "cargo test --manifest-path programs/darkseek-vault/Cargo.toml --lib && tsx --test --test-concurrency=1 tests/source.test.ts tests/timelocks.test.ts tests/protocol.test.ts tests/token.test.ts tests/invariants.test.ts",
+    "test:program": "cargo test --manifest-path programs/darkseek-vault/Cargo.toml --lib && tsx --test --test-concurrency=1 tests/source.test.ts tests/timelocks.test.ts tests/protocol.test.ts tests/token.test.ts tests/invariants.test.ts tests/upgrade.test.ts",
     "test:indexer": "npm run build -w @darkseek/sdk && npm test -w @darkseek/indexer",
     "idl": "scripts/build-idl.sh",
     "scan:secrets": "scripts/scan-secrets.sh",

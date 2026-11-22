@@ -27,8 +27,19 @@ export const BPS = 10_000n;
 export const DAY = 86_400;
 export const MAX_SESSION_SECS = 90 * DAY;
 export const STALE_AFTER_SECS = 2 * 3_600;
+/** a seated player may leave an open lobby on their own once it has been forming this long */
+export const LEAVE_AFTER_SECS = 30 * 60;
 export const REWARD_SCALE = 1_000_000_000_000n;
+/** of the stakers' USDC that waited, at most a tenth goes out at each round start */
+export const CARRY_RELEASE_DIV = 10n;
 export const AUCTION_RESTART_BPS = 15_000n;
+/** a fill this soon after the one before restarts the price at 3 times instead of 1.5 */
+export const QUICK_REFILL_SECS = 10 * 60;
+/** the bounds init_ds puts on the auction settings: each leg of the descent lasts six hours to seven days */
+export const MIN_AUCTION_SECS = 21_600n;
+export const MAX_AUCTION_SECS = 7n * 86_400n;
+export const MAX_LOT_USDC = 100_000n;
+export const MAX_BUYBACK_TARGET_USDC = 1_000_000n;
 /** after each completed buyback round the next target is 98% of the last */
 export const BUYBACK_TARGET_DECAY_BPS = 9_800n;
 
@@ -39,6 +50,11 @@ export const USDC_UNIT = 1_000_000n;
 export const DS_DECIMALS = 6;
 export const DS_UNIT = 1_000_000n;
 export const DS_TOTAL_SUPPLY = 1_000_000_000n * DS_UNIT;
+/**
+ * Circle's USDC on Solana mainnet: SPL Token, six decimals. Circle holds its mint
+ * and freeze authorities. A mainnet deployment must stake this mint and no other.
+ */
+export const MAINNET_USDC_MINT = new PublicKey('EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v');
 
 /** The published protocol parameters (white paper); `checkConfig` compares the chain with them. */
 export const PUBLISHED = {

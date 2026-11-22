@@ -27,8 +27,9 @@ export interface InitArgs {
 export interface DsArgs {
   /** $DS base units per whole USDC until the first fill */
   genesisPrice: bigint;
+  /** lowest price the auction ever asks: an emergency bound only, 1 for none */
   floorPrice: bigint;
-  /** seconds from the start price to the floor */
+  /** seconds of each leg of the descent (6 hours to 7 days): past the last fill the bid at most doubles every leg */
   duration: bigint;
   /** most USDC per fill (base units) */
   lot: bigint;
@@ -112,6 +113,10 @@ export class VaultInstructions {
   }
   unlockStake(authority: PublicKey, room: number, owner: PublicKey, round: bigint, slot: number) {
     return this.ix('unlock_stake', [r(authority, true), r(this.config), w(this.room(room)), w(this.vault(owner))], { round, slot });
+  }
+  /** The seat's owner leaves an open lobby on their own, once it has formed for LEAVE_AFTER_SECS (v0.4.0). */
+  leaveSeat(owner: PublicKey, room: number, round: bigint, slot: number) {
+    return this.ix('leave_seat', [r(owner, true), w(this.vault(owner)), w(this.room(room))], { round, slot });
   }
   startRound(authority: PublicKey, room: number, round: bigint) {
     return this.ix('start_round', [r(authority, true), w(this.config), w(this.room(room))], { round });

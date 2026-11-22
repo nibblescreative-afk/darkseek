@@ -2,7 +2,21 @@
 // (programs/darkseek-vault/src/rules.rs). Tests run both against the same
 // numbers, and the validator tests compare them with what the chain did.
 
-import { AUCTION_RESTART_BPS, BPS, BUYBACK_TARGET_DECAY_BPS, HIDER_SEATS, REWARD_SCALE, SEATS, SEEKER_SEATS, SURVIVED } from './constants.js';
+import {
+  AUCTION_RESTART_BPS,
+  BPS,
+  BUYBACK_TARGET_DECAY_BPS,
+  CARRY_RELEASE_DIV,
+  HIDER_SEATS,
+  MAX_AUCTION_SECS,
+  MAX_BUYBACK_TARGET_USDC,
+  MAX_LOT_USDC,
+  MIN_AUCTION_SECS,
+  REWARD_SCALE,
+  SEATS,
+  SEEKER_SEATS,
+  SURVIVED,
+} from './constants.js';
 import type { AuctionState, FeeSplit } from './accounts.js';
 
 const min = (a: bigint, b: bigint) => (a < b ? a : b);
@@ -17,6 +31,14 @@ export interface FeeParts {
   rebate: bigint;
   buyback: bigint;
   treasury: bigint;
+}
+
+/**
+ * The parts of a round's fee as the program takes them at the start: split four ways
+ * once $DS is recorded, all of it to the treasury before (v0.4.0 and later).
+ */
+export function feeParts(fee: bigint, split: FeeSplit, dsReady: boolean): FeeParts {
+  return dsReady ? splitFee(fee, split) : { stakers: 0n, rebate: 0n, buyback: 0n, treasury: fee };
 }
 
 /** The four parts of a fee; the treasury takes the rounding remainder so they add up exactly. */
@@ -88,12 +110,36 @@ export function rebateClaim(credit: bigint, dsReserve: bigint, reserveCost: bigi
 
 // ---------------------------------------------------------------------- staking
 
+/**
+ * Adds a round's USDC for stakers. With stakers, this round's amount goes out now and of
+ * what waited (nobody staked, or rounding) at most a tenth, at least one unit (v0.4.0).
+ */
 export function accrueRewards(acc: bigint, carry: bigint, totalStaked: bigint, amount: bigint): { acc: bigint; carry: bigint } {
-  const pending = carry + amount * REWARD_SCALE;
-  if (totalStaked === 0n) return { acc, carry: pending };
+  const fresh = amount * REWARD_SCALE;
+  if (totalStaked === 0n) return { acc, carry: carry + fresh };
+  const release = (carry + CARRY_RELEASE_DIV - 1n) / CARRY_RELEASE_DIV;
+  const pending = fresh + release;
   const inc = pending / totalStaked;
-  return { acc: acc + inc, carry: pending - inc * totalStaked };
+  return { acc: acc + inc, carry: carry - release + (pending - inc * totalStaked) };
 }
+
+/** The auction settings init_ds accepts (v0.4.0): see the program's ds_args_ok. */
+export function dsArgsOk(a: { genesisPrice: bigint; floorPrice: bigint; duration: bigint; lot: bigint; minFill: bigint; buybackTarget: bigint }, usdcUnit: bigint): boolean {
+  return (
+    a.floorPrice > 0n &&
+    a.genesisPrice >= a.floorPrice &&
+    a.duration >= MIN_AUCTION_SECS &&
+    a.duration <= MAX_AUCTION_SECS &&
+    a.minFill > 0n &&
+    a.lot >= a.minFill &&
+    a.lot <= usdcUnit * MAX_LOT_USDC &&
+    a.buybackTarget > 0n &&
+    a.buybackTarget <= usdcUnit * MAX_BUYBACK_TARGET_USDC
+  );
+}
+
+/** What a fill at `price` leaves as the auction's reference: doubled when it came quickly after the one before. */
+export const nextReferencePrice = (price: bigint, quick: boolean): bigint => (quick ? min(price * 2n, U64_MAX) : price);
 
 export const earned = (staked: bigint, acc: bigint, index: bigint): bigint => (staked * (acc - index)) / REWARD_SCALE;
 
@@ -118,23 +164,40 @@ export function buybackTargetAfter(initial: bigint, rounds: bigint): bigint {
 
 // ---------------------------------------------------------------------- auction
 
-/** The auction price at `now` (unix seconds): 1.5x the last fill, straight down to the floor over `duration`. */
+/** Where leg `k` of the descent starts and ends: 1.5x the last fill, then the last fill halved k and k + 1 times, never under the floor. */
+function leg(a: AuctionState, k: bigint): { start: bigint; end: bigint } {
+  const halved = (n: bigint) => (n >= 64n ? 0n : a.lastPrice >> n);
+  const start = max(k === 0n ? min((a.lastPrice * AUCTION_RESTART_BPS) / BPS, U64_MAX) : halved(k), a.floorPrice);
+  return { start, end: max(halved(k + 1n), a.floorPrice) };
+}
+
+/**
+ * The auction price at `now` (unix seconds), as the program's auction_price: 1.5x
+ * the last fill, then straight legs of `duration` seconds, the first ending at
+ * half the last fill's price and each later one at half the end of the one
+ * before, never under the floor. Past the last fill the bid at most doubles
+ * every leg.
+ */
 export function auctionPrice(a: AuctionState, now: bigint): bigint {
-  const start = max(min((a.lastPrice * AUCTION_RESTART_BPS) / BPS, U64_MAX), a.floorPrice);
+  if (a.duration <= 0n) return a.floorPrice;
   const elapsed = max(now - a.startedAt, 0n);
-  if (a.duration <= 0n || elapsed >= a.duration) return a.floorPrice;
-  return start - ((start - a.floorPrice) * elapsed) / a.duration;
+  const { start, end } = leg(a, elapsed / a.duration);
+  return start - ((start - end) * (elapsed % a.duration)) / a.duration;
 }
 
 /** Seconds until the auction asks `target` or less (0 if it already does; null if it never will). */
 export function secondsUntilPrice(a: AuctionState, now: bigint, target: bigint): bigint | null {
   if (auctionPrice(a, now) <= target) return 0n;
-  if (target < a.floorPrice) return null;
-  const start = max(min((a.lastPrice * AUCTION_RESTART_BPS) / BPS, U64_MAX), a.floorPrice);
-  // smallest t with start - (start - floor) * t / duration <= target
-  const span = start - a.floorPrice;
-  const t = ((start - target) * a.duration + span - 1n) / span;
-  return max(a.startedAt + t - now, 0n);
+  if (target < a.floorPrice || a.duration <= 0n) return null;
+  // the first leg that ends at or under the target; the price never rises, so the crossing is in it
+  for (let k = 0n; k <= 64n; k++) {
+    const { start, end } = leg(a, k);
+    if (end > target) continue;
+    // smallest t in the leg with start - (start - end) * t / duration <= target
+    const t = start <= target ? 0n : ((start - target) * a.duration + (start - end) - 1n) / (start - end);
+    return max(a.startedAt + k * a.duration + t - now, 0n);
+  }
+  return null;
 }
 
 export interface Fill {

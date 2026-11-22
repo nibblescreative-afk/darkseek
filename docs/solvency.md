@@ -91,7 +91,8 @@ value between counters without touching tokens:
 | `deposit_ds`, `withdraw_ds` | $DS custody up or down by x | vault free $DS up or down by x |
 | `stake_ds`, `unstake_ds` | none | x between vault free and staked $DS; config staked $DS follows |
 
-Three layers of tests hold the program to this table:
+Three layers of tests hold the program to this table, and a fourth holds each
+release to the one deployed before it:
 
 - **Every outcome.** A round has 6,561 possible outcomes: each of the eight
   Hiders survives or is caught by one of the two Seekers. The program's unit
@@ -115,6 +116,12 @@ Three layers of tests hold the program to this table:
   says, and a refused step must change nothing. CI runs six seeds of 160 steps
   on every change; `FUZZ_SEEDS` and `FUZZ_STEPS` run longer campaigns, and
   `FUZZ_SEED` replays the seed a failure prints.
+- **Upgrade in place.** `tests/upgrade.test.ts` runs the previous release's
+  program (its GitHub release asset, checked against the release's
+  `SHA256SUMS`), plays rounds and leaves a lobby forming, before and after $DS
+  is recorded, then puts the new build at the same address and checks that
+  every account still decodes, plays on and balances to the base unit. The
+  Validator workflow runs it on every change against the latest release.
 
 ## Check it yourself
 

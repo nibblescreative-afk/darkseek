@@ -51,4 +51,8 @@ pub enum VaultError {
     NothingToClaim,
     #[msg("This mint has an extension that could take, freeze, tax or block tokens")]
     MintExtensionNotAllowed,
+    #[msg("Too early: this lobby has not been forming long enough for a player to leave on their own")]
+    TooEarly,
+    #[msg("$DS must have pump.fun's supply: one billion at most")]
+    DsSupply,
 }

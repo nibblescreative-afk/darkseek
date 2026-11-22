@@ -208,6 +208,13 @@ export const splIxs = {
       keys: [w(mint), r(updateAuthority), r(mint), r(mintAuthority, true)],
       data: Buffer.concat([Buffer.from(sha256(new TextEncoder().encode('spl_token_metadata_interface:initialize_account'))).subarray(0, 8), str(m.name), str(m.symbol), str(m.uri)]),
     }),
+  /** Token 2022: hands the metadata's update authority to `next`; null leaves the metadata fixed for good, as pump.fun does. */
+  updateTokenMetadataAuthority: (mint: PublicKey, current: PublicKey, next: PublicKey | null) =>
+    new TransactionInstruction({
+      programId: TOKEN_2022_PROGRAM_ID,
+      keys: [w(mint), r(current, true)],
+      data: Buffer.concat([Buffer.from(sha256(new TextEncoder().encode('spl_token_metadata_interface:update_the_authority'))).subarray(0, 8), (next ?? PublicKey.default).toBuffer()]),
+    }),
 };
 
 /** Size of a Token 2022 mint with only the MetadataPointer extension. */
