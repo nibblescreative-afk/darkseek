@@ -6,16 +6,11 @@ name: Validator
 on:
   push:
     branches: [main]
+  # every pull request, so its required check always reports: one that changes
+  # nothing the validator checks skips that job (the changes job decides), and a
+  # job skipped by its condition counts as passed, where a workflow skipped by a
+  # paths filter never reports at all and holds the pull request
   pull_request:
-    paths:
-      - programs/**
-      - packages/sdk/**
-      - apps/indexer/**
-      - tests/**
-      - scripts/**
-      - Cargo.lock
-      - package-lock.json
-      - .github/workflows/validator.yml
   workflow_dispatch:
 
 permissions:
@@ -29,10 +24,45 @@ env:
   AGAVE_VERSION: 4.4.1
 
 jobs:
+  changes:
+    name: What the pull request changes
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    outputs:
+      run: ${{ steps.paths.outputs.run }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 2
+          persist-credentials: false
+      - id: paths
+        name: Does it touch the program, the SDK, the indexer, the scripts or the tests
+        env:
+          EVENT: ${{ github.event_name }}
+        run: |
+          # a push to main or a manual run always runs the validator; a pull request
+          # (checked out as its merge commit, so HEAD^1 is main) runs it when it
+          # touches what the validator checks, or when its files cannot be listed.
+          # Every path as it is (no quoting) and both sides of a rename, so a file
+          # moved out of programs/ still counts as a program change.
+          run=true
+          files=
+          if [ "$EVENT" = pull_request ] && files=$(git -c core.quotePath=false diff --no-renames --name-only -z HEAD^1 HEAD | tr '\0' '\n') && [ -n "$files" ]; then
+            case "$(grep -cE '^(programs/|packages/sdk/|apps/indexer/|tests/|scripts/|Cargo\.(toml|lock)$|package(-lock)?\.json$|\.github/workflows/validator\.yml$)' <<< "$files")" in
+              0) run=false ;;
+            esac
+          fi
+          echo "run=$run" >> "$GITHUB_OUTPUT"
+          echo "validator runs: $run"
+          printf '%s\n' "$files"
+
   validator:
     name: Program, scripts and indexer on a local validator
     runs-on: ubuntu-24.04
     timeout-minutes: 60
+    needs: changes
+    # skipped, which counts as passed, only when a pull request changes nothing it checks
+    if: ${{ !cancelled() && (needs.changes.result != 'success' || needs.changes.outputs.run != 'false') }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
