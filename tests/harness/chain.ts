@@ -9,7 +9,7 @@ import { spawn, spawnSync, type ChildProcess } from 'node:child_process';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { Connection, Keypair, LAMPORTS_PER_SOL, PublicKey, Transaction, type TransactionInstruction } from '@solana/web3.js';
+import { Connection, Keypair, LAMPORTS_PER_SOL, PublicKey, SYSVAR_CLOCK_PUBKEY, SYSVAR_RENT_PUBKEY, Transaction, TransactionInstruction } from '@solana/web3.js';
 import {
   AccountRole,
   address,
@@ -161,6 +161,8 @@ export class ValidatorChain implements Chain {
 
 // ---------------------------------------------------------------------- LiteSVM
 
+const UPGRADEABLE_LOADER = new PublicKey('BPFLoaderUpgradeab1e11111111111111111111111');
+
 function toKit(ix: TransactionInstruction, signers: Map<string, KeyPairSigner>): Instruction {
   return {
     programAddress: address(ix.programId.toBase58()),
@@ -186,8 +188,10 @@ export class SvmChain implements Chain {
   }
 
   /**
-   * Puts the program built in `file` at the program's address, as an upgrade by the
-   * upgrade authority does: every account the program owns keeps what it holds.
+   * Puts the program built in `file` at the program's address, with program data
+   * just large enough for it; every account the program owns keeps what it holds.
+   * This skips the loader, like a program that is already deployed; `upgrade`
+   * goes through it.
    */
   deploy(file: string): void {
     this.svm.addProgramFromFile(address(PROGRAM_ID.toBase58()), file);
@@ -199,6 +203,43 @@ export class SvmChain implements Chain {
     data[12] = 1;
     data.set(this.upgradeAuthority.toBytes(), 13);
     this.svm.setAccount({ ...acc, data });
+  }
+
+  /**
+   * Upgrades the program to the build in `file` the way `solana program upgrade`
+   * does: the bytes wait in a buffer (as `solana program write-buffer` leaves
+   * them), then the upgrade authority's Upgrade instruction has the loader check
+   * them and copy them into the program data, which must be large enough to hold
+   * them. Not in the slot the program was deployed in; the new code runs from
+   * the next slot.
+   */
+  async upgrade(file: string, authority: Keypair): Promise<SentTx> {
+    const buffer = Keypair.generate().publicKey;
+    // UpgradeableLoaderState::Buffer { authority_address: Some(authority) }, then the program
+    const data = new Uint8Array(Buffer.concat([Buffer.from([1, 0, 0, 0, 1]), authority.publicKey.toBuffer(), fs.readFileSync(file)]));
+    this.svm.setAccount({
+      address: address(buffer.toBase58()),
+      data,
+      executable: false,
+      lamports: lamports(this.svm.minimumBalanceForRentExemption(BigInt(data.length))),
+      programAddress: address(UPGRADEABLE_LOADER.toBase58()),
+      space: BigInt(data.length),
+    });
+    const upgrade = new TransactionInstruction({
+      programId: UPGRADEABLE_LOADER,
+      keys: [
+        { pubkey: pda.programData(PROGRAM_ID), isSigner: false, isWritable: true },
+        { pubkey: PROGRAM_ID, isSigner: false, isWritable: true },
+        { pubkey: buffer, isSigner: false, isWritable: true },
+        // the spill account: the buffer's lamports go back to the authority
+        { pubkey: authority.publicKey, isSigner: false, isWritable: true },
+        { pubkey: SYSVAR_RENT_PUBKEY, isSigner: false, isWritable: false },
+        { pubkey: SYSVAR_CLOCK_PUBKEY, isSigner: false, isWritable: false },
+        { pubkey: authority.publicKey, isSigner: true, isWritable: false },
+      ],
+      data: Buffer.from([3, 0, 0, 0]), // UpgradeableLoaderInstruction::Upgrade
+    });
+    return this.send([upgrade], [authority]);
   }
 
   async send(ixs: TransactionInstruction[], signers: Keypair[], feePayer = signers[0]): Promise<SentTx> {

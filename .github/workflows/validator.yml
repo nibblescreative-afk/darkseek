@@ -1,6 +1,8 @@
 # The program, the scripts and the indexer against a real local validator, and
-# the time dependent paths in LiteSVM. Heavier than CI: it installs the Agave
-# toolchain (pinned and cached) and builds the program for SBF.
+# the time dependent paths in LiteSVM, all with the bytes a release of this
+# commit would ship: the verifiable build in the pinned image, SBPF v3
+# (scripts/build-program.sh --verifiable). Heavier than CI: it pulls that image
+# and installs solana-verify and the Agave toolchain (pinned and cached).
 name: Validator
 
 on:
@@ -27,6 +29,7 @@ concurrency:
 
 env:
   AGAVE_VERSION: 4.4.1
+  SOLANA_VERIFY_VERSION: 0.5.2
 
 jobs:
   validator:
@@ -39,17 +42,11 @@ jobs:
         with:
           node-version: 22
           cache: npm
-      - name: Rust 1.100.0
-        run: |
-          rustup toolchain install 1.100.0 --profile minimal
-          rustup default 1.100.0
-      - name: Cache the Agave toolchain and platform tools
+      - name: Cache the Agave toolchain
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
-          path: |
-            ~/.local/share/solana
-            ~/.cache/solana
-          key: agave-${{ env.AGAVE_VERSION }}-${{ runner.os }}
+          path: ~/.local/share/solana
+          key: agave-cli-${{ env.AGAVE_VERSION }}-${{ runner.os }}
       - name: Install Agave ${{ env.AGAVE_VERSION }}
         run: |
           if [ ! -x "$HOME/.local/share/solana/install/active_release/bin/solana-test-validator" ]; then
@@ -57,16 +54,25 @@ jobs:
           fi
           echo "$HOME/.local/share/solana/install/active_release/bin" >> "$GITHUB_PATH"
       - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        id: solana-verify
         with:
-          path: |
-            ~/.cargo/registry/index
-            ~/.cargo/registry/cache
-            ~/.cargo/git/db
-            target
-          key: rust-sbf-${{ runner.os }}-${{ env.AGAVE_VERSION }}-${{ hashFiles('Cargo.lock') }}
-          restore-keys: rust-sbf-${{ runner.os }}-${{ env.AGAVE_VERSION }}-
-      - run: solana --version && cargo build-sbf --version
-      - run: scripts/build-program.sh
+          path: ~/.cargo/bin/solana-verify
+          key: solana-verify-${{ env.SOLANA_VERIFY_VERSION }}-${{ runner.os }}
+      - name: solana-verify ${{ env.SOLANA_VERIFY_VERSION }}
+        if: steps.solana-verify.outputs.cache-hit != 'true'
+        run: |
+          rustup toolchain install 1.100.0 --profile minimal
+          rustup default 1.100.0
+          cargo install solana-verify --version "$SOLANA_VERIFY_VERSION" --locked
+      - run: solana --version && solana-verify --version
+      - name: The program as a release builds it (solana-verify in the pinned image, SBPF v3)
+        run: scripts/build-program.sh --verifiable
+      - name: Hand target/ back to the runner (the build container runs as root)
+        run: sudo chown -R "$(id -u):$(id -g)" target
+      - name: Program hash and size
+        run: |
+          so=target/deploy/darkseek_vault.so
+          echo "::notice title=Program build::program hash $(solana-verify get-executable-hash "$so"), $(stat -c %s "$so") bytes, $(scripts/sbpf-version.sh "$so"), sha256 $(sha256sum "$so" | cut -d ' ' -f 1)"
       - run: npm ci
       - run: npm run build -w @darkseek/sdk
       - name: LiteSVM (stale rounds, sessions, vesting, the auction over time)
@@ -79,14 +85,18 @@ jobs:
         run: npx tsx --test tests/token.test.ts
       - name: The indexer on a local validator
         run: npm test -w @darkseek/indexer
-      - name: An upgrade in place from the latest release, in LiteSVM
+      - name: An upgrade in place from each release a cluster may still run, in LiteSVM
         env:
-          PREVIOUS_RELEASE: v0.3.0
+          # what devnet and testnet run (docs/deployments.md) and the release they move to next
+          PREVIOUS_RELEASES: v0.3.0 v0.4.1
         run: |
-          prev="$RUNNER_TEMP/previous-release"
-          mkdir -p "$prev"
-          base="https://github.com/nibblescreative-afk/darkseek/releases/download/$PREVIOUS_RELEASE"
-          curl -fsSL -o "$prev/darkseek_vault.so" "$base/darkseek_vault.so"
-          curl -fsSL -o "$prev/SHA256SUMS" "$base/SHA256SUMS"
-          (cd "$prev" && grep ' darkseek_vault.so$' SHA256SUMS | sha256sum -c -)
-          DS_PREVIOUS_SO="$prev/darkseek_vault.so" npx tsx --test tests/upgrade.test.ts
+          for tag in $PREVIOUS_RELEASES; do
+            prev="$RUNNER_TEMP/release-$tag"
+            mkdir -p "$prev"
+            base="https://github.com/nibblescreative-afk/darkseek/releases/download/$tag"
+            curl -fsSL -o "$prev/darkseek_vault.so" "$base/darkseek_vault.so"
+            curl -fsSL -o "$prev/SHA256SUMS" "$base/SHA256SUMS"
+            (cd "$prev" && grep ' darkseek_vault.so$' SHA256SUMS | sha256sum -c -)
+            echo "upgrade from $tag: $(scripts/sbpf-version.sh "$prev/darkseek_vault.so")"
+            DS_PREVIOUS_SO="$prev/darkseek_vault.so" npx tsx --test tests/upgrade.test.ts
+          done

@@ -1,6 +1,7 @@
-# A tag vX.Y.Z builds the program reproducibly, checks the IDL, packs the SDK,
-# writes SHA256SUMS, attests build provenance for every asset and drafts the
-# GitHub release. See docs/releasing.md.
+# A tag vX.Y.Z builds the program reproducibly (SBPF v3, in the image pinned in
+# scripts/build-program.sh), checks the IDL, packs the SDK, writes SHA256SUMS,
+# attests build provenance for every asset and drafts the GitHub release. See
+# docs/releasing.md.
 name: Release
 
 on:
@@ -13,7 +14,6 @@ permissions:
   attestations: write
 
 env:
-  VERIFY_IMAGE: solanafoundation/solana-verifiable-build:4.3.0@sha256:12fd4c0a0790f0fc41ef74b0cdb6bccc167ba6137eb1adb749bac649481c86bd
   SOLANA_VERIFY_VERSION: 0.5.2
 
 jobs:
@@ -45,8 +45,8 @@ jobs:
         run: scripts/build-idl.sh --check
       - run: npm ci
       - run: npm test
-      - name: Verifiable build of the program
-        run: solana-verify build --library-name darkseek_vault --base-image "$VERIFY_IMAGE"
+      - name: Verifiable build of the program (solana-verify in the pinned image, SBPF v3)
+        run: scripts/build-program.sh --verifiable
       - name: Hand target/ back to the runner (the build container runs as root)
         run: sudo chown -R "$(id -u):$(id -g)" target
       - name: Assets and checksums
@@ -58,6 +58,8 @@ jobs:
           sha256sum darkseek_vault.so darkseek_vault.json darkseek-sdk-*.tgz > SHA256SUMS
           cat SHA256SUMS
           echo "PROGRAM_HASH=$(solana-verify get-executable-hash darkseek_vault.so)" >> "$GITHUB_ENV"
+          echo "SBPF=$(../scripts/sbpf-version.sh --expect v3 darkseek_vault.so)" >> "$GITHUB_ENV"
+          echo "VERIFY_IMAGE=$(sed -n 's/^VERIFY_IMAGE=//p' ../scripts/build-program.sh)" >> "$GITHUB_ENV"
       - uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
         with:
           subject-path: |
@@ -70,9 +72,9 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           cat > notes.md <<NOTES
-          Program hash (solana-verify): \`${PROGRAM_HASH}\`
+          Program hash (solana-verify): \`${PROGRAM_HASH}\`, ${SBPF}
 
-          Built with \`solana-verify build\` in \`${VERIFY_IMAGE}\` from commit ${GITHUB_SHA}.
+          Built with \`solana-verify build --arch v3\` in \`${VERIFY_IMAGE}\` from commit ${GITHUB_SHA}.
           Check these assets with \`scripts/verify-release.sh ${GITHUB_REF_NAME}\` (docs/verify.md).
           See CHANGELOG.md for what changed and what the game server must do differently.
           NOTES
