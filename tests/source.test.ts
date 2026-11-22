@@ -141,6 +141,15 @@ test('v0.4.0: until $DS is recorded the whole fee goes to the treasury', () => {
   assert.match(fns.get('init_ds')!, /require!\(ds_args_ok\(&args, ctx\.accounts\.config\.usdc_unit\(\)\), VaultError::BadParams\);/);
 });
 
+test('v0.4.0: the auction follows the last fill, its bid at most doubling every leg, never under the floor', () => {
+  const rules = fs.readFileSync(path.join(SRC, 'rules.rs'), 'utf8');
+  const price = rules.slice(rules.indexOf('pub fn auction_price'), rules.indexOf('pub struct Fill'));
+  assert.match(price, /let halved = \|k: i64\| if k >= 64 \{ 0 \} else \{ a\.last_price >> k \};/);
+  assert.match(price, /let start = if leg == 0 \{ restart \} else \{ halved\(leg\) \}\.max\(a\.floor_price\);/);
+  assert.match(price, /let end = halved\(leg \+ 1\)\.max\(a\.floor_price\);/);
+  assert.match(fs.readFileSync(path.join(SRC, 'state.rs'), 'utf8'), /pub const MIN_AUCTION_SECS: i64 = 6 \* 3_600;/);
+});
+
 test('v0.4.0: $DS is recorded only with pump.fun\'s supply of one billion or less', () => {
   assert.match(fns.get('init_ds')!, /require!\(m\.supply > 0 && m\.supply <= DS_TOTAL_SUPPLY, VaultError::DsSupply\);/);
   assert.match(fs.readFileSync(path.join(SRC, 'state.rs'), 'utf8'), /pub const DS_TOTAL_SUPPLY: u64 = 1_000_000_000_000_000;/);
