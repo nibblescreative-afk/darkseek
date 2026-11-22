@@ -143,15 +143,17 @@ export class World {
   /**
    * A test $DS shaped like a pump.fun token: one billion with six decimals,
    * no freeze authority, the mint authority removed after the single mint. On
-   * Token 2022 it carries its metadata in the mint, as pump.fun's do. The
-   * whole supply goes to the admin, who hands it out in tests.
+   * Token 2022 it is what pump.fun's CreateV2 makes (read from its coins on
+   * mainnet in November 2026): a metadata pointer to the mint itself with no
+   * authority, the metadata in the mint with no update authority, no other
+   * extension. The whole supply goes to the admin, who hands it out in tests.
    */
   async createDs(program: DsProgram = 'spl'): Promise<void> {
     this.dsTokenProgram = await this.createPumpLikeMint(this.dsMint, program);
   }
 
   /** Any token shaped like a pump.fun mint, the whole supply to the admin; returns its token program. */
-  async createPumpLikeMint(mintKey: Keypair, program: DsProgram): Promise<PublicKey> {
+  async createPumpLikeMint(mintKey: Keypair, program: DsProgram, supply = DS_TOTAL_SUPPLY): Promise<PublicKey> {
     const mint = mintKey.publicKey;
     const p = program === 'spl' ? TOKEN_PROGRAM_ID : TOKEN_2022_PROGRAM_ID;
     if (program === 'spl') {
@@ -165,6 +167,7 @@ export class World {
           splIxs.initializeMetadataPointer(mint, null, mint),
           splIxs.initializeMint2(mint, 6, this.admin.publicKey, p),
           splIxs.initializeTokenMetadata(mint, this.admin.publicKey, this.admin.publicKey, meta),
+          splIxs.updateTokenMetadataAuthority(mint, this.admin.publicKey, null),
         ],
         [this.admin, mintKey],
       );
@@ -172,7 +175,7 @@ export class World {
     await this.chain.send(
       [
         splIxs.createAtaIdempotent(this.admin.publicKey, this.admin.publicKey, mint, p),
-        splIxs.mintTo(mint, ata(this.admin.publicKey, mint, p), this.admin.publicKey, DS_TOTAL_SUPPLY, p),
+        splIxs.mintTo(mint, ata(this.admin.publicKey, mint, p), this.admin.publicKey, supply, p),
         splIxs.setAuthority(mint, this.admin.publicKey, AUTHORITY_TYPE.MintTokens, null, p),
       ],
       [this.admin],

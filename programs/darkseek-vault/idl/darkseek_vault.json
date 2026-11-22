@@ -771,8 +771,9 @@
       "docs": [
         "Records the $DS mint, the buyback target and the auction's parameters,",
         "once. The mint, SPL Token or Token 2022, must have a fixed supply (no mint",
-        "authority, no freeze authority), six decimals and no extension but",
-        "metadata. Nothing recorded here can change later."
+        "authority, no freeze authority), six decimals, at most one billion",
+        "tokens and no extension but metadata, as pump.fun creates its coins.",
+        "Nothing recorded here can change later."
       ],
       "discriminator": [
         43,
@@ -2697,6 +2698,11 @@
       "code": 6024,
       "name": "TooEarly",
       "msg": "Too early: this lobby has not been forming long enough for a player to leave on their own"
+    },
+    {
+      "code": 6025,
+      "name": "DsSupply",
+      "msg": "$DS must have pump.fun's supply: one billion at most"
     }
   ],
   "types": [

@@ -51,7 +51,7 @@ program up under their own admin key before its deployer does.
 |---|---|---|
 | `initialize` | create the config and the USDC custody, choosing the game server key, the stakes, the fee and its split | once; signer must be the upgrade authority; fee at most 20%; the four fee shares must add up to 100% |
 | `init_room` | create rooms 1 to 6 with a tier | once per room |
-| `init_ds` | record the $DS mint, its token program, the first buyback target and the auction parameters | once; refuses a mint with a mint authority or a freeze authority, without six decimals, or (Token 2022) with any extension but metadata; target above zero; genesis price at or above the floor |
+| `init_ds` | record the $DS mint, its token program, the first buyback target and the auction parameters | once; refuses a mint with a mint authority or a freeze authority, without six decimals, with more than one billion tokens, or (Token 2022) with any extension but metadata; target above zero; genesis price at or above the floor |
 | `set_authority` | replace the game server key | takes effect at once; emits `AuthoritySet` |
 | `propose_admin`, `accept_admin` | hand the admin role over | two steps: the new key must sign to accept |
 | `sweep_treasury` | withdraw from the treasury to any USDC account | at most `config.treasury` |

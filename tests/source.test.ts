@@ -141,3 +141,8 @@ test('v0.4.0: until $DS is recorded the whole fee goes to the treasury', () => {
   assert.match(fns.get('init_ds')!, /require!\(ds_args_ok\(&args, ctx\.accounts\.config\.usdc_unit\(\)\), VaultError::BadParams\);/);
 });
 
+test('v0.4.0: $DS is recorded only with pump.fun\'s supply of one billion or less', () => {
+  assert.match(fns.get('init_ds')!, /require!\(m\.supply > 0 && m\.supply <= DS_TOTAL_SUPPLY, VaultError::DsSupply\);/);
+  assert.match(fs.readFileSync(path.join(SRC, 'state.rs'), 'utf8'), /pub const DS_TOTAL_SUPPLY: u64 = 1_000_000_000_000_000;/);
+});
+

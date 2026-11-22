@@ -147,12 +147,15 @@ pub mod darkseek_vault {
 
     /// Records the $DS mint, the buyback target and the auction's parameters,
     /// once. The mint, SPL Token or Token 2022, must have a fixed supply (no mint
-    /// authority, no freeze authority), six decimals and no extension but
-    /// metadata. Nothing recorded here can change later.
+    /// authority, no freeze authority), six decimals, at most one billion
+    /// tokens and no extension but metadata, as pump.fun creates its coins.
+    /// Nothing recorded here can change later.
     pub fn init_ds(ctx: Context<InitDs>, args: DsArgs) -> Result<()> {
         let m = &ctx.accounts.ds_mint;
         require!(m.mint_authority.is_none() && m.freeze_authority.is_none(), VaultError::DsNotFixed);
         require!(m.decimals == DS_DECIMALS, VaultError::BadParams);
+        // pump.fun's one billion, or less after burns; a Mayhem mode coin has two billion
+        require!(m.supply > 0 && m.supply <= DS_TOTAL_SUPPLY, VaultError::DsSupply);
         check_mint_extensions(&m.to_account_info())?;
         // bounded settings: a floor at most a thousand times under the genesis price, a descent of
         // an hour to a week, a lot of at most 100 000 USDC, a first target of at most 1 000 000 USDC

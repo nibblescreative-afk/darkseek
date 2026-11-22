@@ -51,6 +51,11 @@ export const USDC_UNIT = 1_000_000n;
 export const DS_DECIMALS = 6;
 export const DS_UNIT = 1_000_000n;
 export const DS_TOTAL_SUPPLY = 1_000_000_000n * DS_UNIT;
+/**
+ * Circle's USDC on Solana mainnet: SPL Token, six decimals. Circle holds its mint
+ * and freeze authorities. A mainnet deployment must stake this mint and no other.
+ */
+export const MAINNET_USDC_MINT = new PublicKey('EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v');
 
 /** The published protocol parameters (white paper); `checkConfig` compares the chain with them. */
 export const PUBLISHED = {

@@ -128,9 +128,14 @@ players who lose money in a round get part of the fee back in $DS.
 
 - **Created by pump.fun**: 1,000,000,000 $DS with six decimals, no mint
   authority and no freeze authority, pump.fun's standard. Nobody, the team
-  included, can mint more or freeze a holder. pump.fun creates either an SPL
-  Token mint or a Token 2022 mint with its metadata inside; the vault program
-  accepts both and refuses any other Token 2022 extension.
+  included, can mint more or freeze a holder. pump.fun now creates every coin
+  as a Token 2022 mint with its metadata inside, which nobody can change
+  afterwards (as its coins on mainnet showed in November 2026). The vault
+  program accepts that mint, or an SPL Token mint, and refuses any other
+  Token 2022 extension.
+- **Normal mode, not Mayhem mode.** A pump.fun coin in Mayhem mode has two
+  billion tokens. The vault program refuses a $DS mint with more than one
+  billion, so $DS launches in normal mode.
 - **No presale and no private allocation.** No tokens are set aside for
   anyone, the team included, and no vesting schedules are created for anyone.
 - **One launch buy.** At launch the team's wallet buys 3% of the supply on
@@ -245,7 +250,8 @@ onchain, with no oracle and no operator.
   launch price in $DS per USDC, caps what the program ever pays per $DS; while
   the market price is above that cap, nobody sells and the pools wait.
 - **Fixed rules.** The $DS mint, the first target and the auction's parameters
-  are recorded once, within bounds the program enforces: a floor of at least a
+  are recorded once, within bounds the program enforces: a mint with at most
+  one billion tokens, a floor of at least a
   thousandth of the launch price, a descent of one hour to seven days, a lot of
   at most 100,000 USDC and a first target of at most 1,000,000 USDC. Nobody, the
   admin included, can change them, pause the auction or take USDC from the pools

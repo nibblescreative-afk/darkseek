@@ -22,6 +22,14 @@ a deployment upgrades in place.
   its price instead of 1.5.
 - Of the stakers' USDC that waited, at most a tenth goes out at each round start.
 - No vault for the all zero key.
+- `init_ds` refuses a $DS mint with more than one billion tokens, pump.fun's
+  supply: a pump.fun coin in Mayhem mode has two billion. New error `DsSupply`
+  (6025, added last). Checked against coins pump.fun created on mainnet in
+  November 2026: every one is a Token 2022 mint from its `CreateV2`
+  instruction, with metadata and no other extension, no mint, freeze or
+  metadata update authority, six decimals. `init_ds` accepts such a mint, and
+  every $DS path (staking, the auction with its burn, rebates, withdrawals)
+  works with it.
 
 ### SDK, verifier, indexer and tests
 
@@ -29,7 +37,11 @@ a deployment upgrades in place.
   constants; `accrueRewards` follows the program. `npm run verify -- config`
   checks the auction bounds, and warns about fees that waited in the pools
   before $DS was recorded. The indexer lists `SeatLeft` with a round's stake
-  events. `scripts/setup-cluster.ts` rounds the default floor up.
+  events. `scripts/setup-cluster.ts` rounds the default floor up. On mainnet
+  the verifier compares the stake token with Circle's USDC
+  (`MAINNET_USDC_MINT`) unless told otherwise. The test $DS on Token 2022 now
+  has no metadata update authority, as pump.fun's coins
+  (`splIxs.updateTokenMetadataAuthority`).
 - Signed round results: `darkseek-verify rounds --site <game>` checks every
   round result the game publishes: its signature (a Solana off-chain message
   from the program's game server key), the fair deal (the revealed seed against

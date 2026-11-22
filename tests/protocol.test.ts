@@ -12,6 +12,8 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { Keypair, PublicKey } from '@solana/web3.js';
 import {
+  DS_TOTAL_SUPPLY,
+  EXT,
   PROGRAM_ID,
   PUBLISHED,
   SURVIVED,
@@ -24,6 +26,7 @@ import {
   buybackTargetAfter,
   checkSolvency,
   configChecks,
+  decodeMint,
   earned,
   fetchProgramInfo,
   executableHash,
@@ -114,8 +117,16 @@ test('$DS is recorded once, on Token 2022 like a pump.fun mint, and only if nobo
   await w.createMint(loose);
   await expectError(chain.send([ixs.initDs(w.admin.publicKey, loose.publicKey, DS_ARGS)], [w.admin]), 'DsNotFixed');
 
+  // a pump.fun coin in Mayhem mode has two billion, twice the published supply (v0.4.0)
+  const mayhem = Keypair.generate();
+  await w.createPumpLikeMint(mayhem, 'token-2022', 2n * DS_TOTAL_SUPPLY);
+  await expectError(chain.send([ixs.initDs(w.admin.publicKey, mayhem.publicKey, DS_ARGS, TOKEN_2022_PROGRAM_ID)], [w.admin]), 'DsSupply');
+
   await w.createDs('token-2022');
   assert.ok(w.dsTokenProgram.equals(TOKEN_2022_PROGRAM_ID));
+  // as pump.fun's CreateV2 leaves it: nobody can change the metadata
+  const meta = decodeMint((await chain.account(w.ds))!.data, TOKEN_2022_PROGRAM_ID).extensions.get(EXT.TokenMetadata)!;
+  assert.ok(Buffer.from(meta.subarray(0, 32)).equals(Buffer.alloc(32)), 'no metadata update authority');
   const stranger = Keypair.generate();
   await chain.airdrop(stranger.publicKey, 2);
   const init = (signer: Keypair, args = DS_ARGS, program = w.dsTokenProgram) => chain.send([ixs.initDs(signer.publicKey, w.ds, args, program)], [signer]);

@@ -87,7 +87,8 @@ $DS is created on pump.fun. At launch this page lists:
 | | |
 |---|---|
 | $DS mint | the contract address, also shown on the site |
-| Token program | SPL Token or Token 2022, as pump.fun created it |
+| Token program | Token 2022, as pump.fun creates every coin now (`CreateV2`); the program also accepts SPL Token |
+| Mode | normal: a coin in pump.fun's Mayhem mode has two billion tokens, and `init_ds` refuses it |
 | Launch buy wallet | the team's wallet that bought 3% of the supply on the bonding curve |
 | Launch buy transaction | its signature |
 | Launch buy in USDC | what the buy cost, converted to USDC, with the price source and time used |
@@ -131,7 +132,11 @@ of them ([verify.md](verify.md)).
 2. an external audit of the program, published in this repository;
 3. the upgrade authority and the admin held by a Squads multisig (3 of 5, 48
    hour timelock), listed here;
-4. $DS launched on pump.fun and the launch details above listed here.
+4. $DS launched on pump.fun in normal mode and the launch details above
+   listed here;
+5. the stake token is Circle's USDC, `EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v`
+   (SPL Token, six decimals); on mainnet `npm run verify -- config` compares the
+   recorded mint with it.
 
 `scripts/test-ds-mint.ts` makes a token shaped like a pump.fun mint for local
 and devnet tests only; it never creates $DS.

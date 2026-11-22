@@ -31,6 +31,9 @@ pub const MAX_FEE_BPS: u16 = 2_000;
 
 /// $DS has six decimals and a fixed supply.
 pub const DS_DECIMALS: u8 = 6;
+/// pump.fun's supply, one billion $DS: `init_ds` refuses a mint with more (a pump.fun coin
+/// in Mayhem mode has two billion).
+pub const DS_TOTAL_SUPPLY: u64 = 1_000_000_000_000_000;
 /// Fixed point scale of the staking reward accumulator.
 pub const REWARD_SCALE: u128 = 1_000_000_000_000;
 /// A new auction starts at 1.5 times the price of the last fill.
