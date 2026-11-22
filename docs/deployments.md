@@ -2,13 +2,16 @@
 
 | Cluster | Status |
 |---|---|
-| Testnet | deployed from release v0.3.0 on 2026-11-21 and verified: the program onchain is the release build; the game runs here |
-| Devnet | deployed from release v0.3.0 on 2026-11-21 and verified: the program onchain is the release build |
+| Testnet | deployed from release v0.3.0 on 2026-11-21, upgraded in place to release v0.4.1 on 2026-11-22, and verified: the program onchain is the release build; the game runs here |
+| Devnet | deployed from release v0.3.0 on 2026-11-21 and verified: the program onchain is the release build; its upgrade to v0.4.1 is still to come |
 | Mainnet | not deployed: an external audit and the multisig come first |
 
 Each deployment lists the program id, the upgrade authority and the admin (the
 multisig, for anything with real money), the game server key, the stake token
 mint, and the release tag with the hash of its verifiable build.
+
+Release v0.4.0 was published without its build files. Release v0.4.1 is the
+same code with them: deploy and verify v0.4.1.
 
 ## Testnet
 
@@ -19,9 +22,9 @@ addresses as on devnet.
 | | |
 |---|---|
 | Program id | `DarkHJqM8GMmCu7BWko6HMG4YgJgZ7jeEr2Qe967e5sE` |
-| Release | [v0.3.0](https://github.com/nibblescreative-afk/darkseek/releases/tag/v0.3.0) |
-| Program hash (solana-verify) | `b6bf1f5ddc29fee71db96e8bccd72054ec679ab97749176235ccee545f5a0093` |
-| Deployed | 2026-11-21 18:57 UTC, slot 467367254 |
+| Release | [v0.4.1](https://github.com/nibblescreative-afk/darkseek/releases/tag/v0.4.1), since 2026-11-22 (before it, [v0.3.0](https://github.com/nibblescreative-afk/darkseek/releases/tag/v0.3.0)) |
+| Program hash (solana-verify) | `78d2865f6040e33963849383cb21fa7a5965e1835085d4613b31fef1c0c073be` |
+| Deployed | 2026-11-21 18:57 UTC, slot 467367254, from v0.3.0; upgraded in place to v0.4.1 on 2026-11-22 11:00 UTC, slot 467635301, signed by the upgrade authority (transaction `5PvgFvca…6KyQrk`), after the program account was extended by 14,672 bytes for the longer build |
 | Upgrade authority | `D2tY97BpGjsGG9qjrcJERP6NnknV48PeQ2jevLptFdyn`, the owner's wallet |
 | Admin | `D2tY97BpGjsGG9qjrcJERP6NnknV48PeQ2jevLptFdyn`, the owner's wallet, since 2026-11-21 19:15 UTC: it signed `accept_admin` itself (transaction `UFd8zr2Y…dQEEYs` in the [config account's history](https://solscan.io/account/CSCcsHkyaANpznMQNXwgPLxigeCnQQLWRPMiV2hAtpsd?cluster=testnet)) |
 | Stake token (test USDC, six decimals) | `34EifEmt9oXcyPNzCWEFjpp9nieq1XvgZKLKRuv1VZhj`; the game server key may mint it, nobody can freeze it |
@@ -36,14 +39,14 @@ bought 3% of the supply (30,000,000 tokens) for 100 test USDC:
 |---|---|
 | First buyback target | 50 test USDC, half the assumed launch buy |
 | Genesis price | 300,000 tokens per USDC (`300000000000` base units) |
-| Floor price | 300 tokens per USDC, a thousandth of the genesis price; from v0.4.0 an emergency bound only |
-| Auction | legs of 6 hours (v0.3.0: one leg from the start price to the floor; from v0.4.0 the bid at most doubles every leg past the last fill); at most 1,000 USDC and at least 1 USDC per fill |
+| Floor price | 300 tokens per USDC, a thousandth of the genesis price: an emergency bound only, since the price follows the fills |
+| Auction | legs of 6 hours: after each fill the price restarts at 1.5 times the fill's (3 times after a fill within ten minutes) and halves leg by leg, so past the last fill the bid at most doubles every leg; at most 1,000 USDC and at least 1 USDC per fill |
 
 Check it yourself, from a clone of this repository:
 
 ```sh
 npm ci
-scripts/verify-release.sh v0.3.0 --cluster testnet                  # the program onchain is the release build
+scripts/verify-release.sh v0.4.1 --cluster testnet                  # the program onchain is the release build
 npm run verify -- all --cluster testnet --launch-buy-usdc 100000000  # settings, the test $DS, solvency, roles
 ```
 

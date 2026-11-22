@@ -155,7 +155,7 @@ build so you can check the site serves the released build.
 
 ## Check it
 
-The program runs on testnet and devnet, both deployed from release v0.3.0
+The program runs on testnet from release v0.4.1 and on devnet from release v0.3.0
 ([deployments.md](docs/deployments.md) lists every address). One command checks
 a deployment from any public RPC:
 
@@ -166,8 +166,8 @@ npm run verify -- all --cluster testnet
 
 It checks the settings against the white paper, the $DS mint, solvency
 (custody covers every balance owed) and the program hash;
-`scripts/verify-release.sh v0.3.0 --cluster testnet` checks that the program
-onchain is the release build. Pass `--cluster devnet` for the devnet one.
+`scripts/verify-release.sh v0.4.1 --cluster testnet` checks that the program
+onchain is the release build (`v0.3.0 --cluster devnet` for the devnet one).
 `npm run verify -- rounds --cluster testnet` checks the game's newest signed
 round results against their settle transactions. Details in
 [verify.md](docs/verify.md). The same checks run in the tests against a local
@@ -212,7 +212,7 @@ Follow it on the [project board](https://github.com/users/nibblescreative-afk/pr
 ## Status
 
 The game is playable at [thedarkseek.xyz](https://thedarkseek.xyz). Its staked
-rounds, shop and P2P payments go through the program on testnet, version 0.3.0,
+rounds, shop and P2P payments go through the program on testnet, version 0.4.1,
 in test USDC that has no value ($DS is still play money in the game), and on
 testnet and devnet alike the program onchain is the release build
 ([deployments.md](docs/deployments.md)).
