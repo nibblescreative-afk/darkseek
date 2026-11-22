@@ -504,7 +504,8 @@ mod tests {
         }
         let out = a * 7 + c; // a is per staked unit; 7 units staked after the first round
         let paid_in = (70 * U + 70_000 + 400 * 1_001) as u128 * REWARD_SCALE;
-        assert_eq!(out - (acc1 * 7 - acc1 * 1), paid_in, "every scaled unit is either in the accumulator or still waiting");
+        // the first round's accumulator went to the one unit staked then, not to all 7
+        assert_eq!(out - acc1 * 6, paid_in, "every scaled unit is either in the accumulator or still waiting");
         assert!(c < REWARD_SCALE * 1_001, "what waited has gone out after a few hundred rounds");
     }
 
@@ -550,4 +551,3 @@ mod tests {
         assert_eq!(next_reference_price(u64::MAX, true), u64::MAX);
     }
 }
-
